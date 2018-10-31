@@ -116,12 +116,12 @@ def show_path(coordinates):
     plt.show()
 
 
-# run functions
-print("positions: {}".format(random_motion()[0]))
-print("velocities: {}".format(random_motion()[1]))
+# # run functions
+# print("positions: {}".format(random_motion()[0]))
+# print("velocities: {}".format(random_motion()[1]))
 
-#
-# show_path(random_motion()[2])
-# show_path(random_motion()[1])
-#show_path(straight_particle())
-#show_path(random_motion()[0])
+
+show_path(random_motion()[2])
+show_path(random_motion()[1])
+show_path(straight_particle())
+show_path(random_motion()[0])

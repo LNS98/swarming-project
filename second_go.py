@@ -9,7 +9,7 @@ import random
 L = 15     # size of the box
 delta_t = 1     # time increment
 dimensions = 2   # dimensions
-N = 2    # number of particles
+N = 5    # number of particles
 
 def main():
     """
@@ -23,22 +23,20 @@ def main():
 
     # populate the box and append them to pos_over_t and vel_over_t
     locations, velocities = pop_box()
-
     pos_over_t.append(locations)
     vel_over_t.append(velocities)
 
     # update position of each particle in the box
-    for i in range(10):
+    for i in range(100):
         # find the new velocity and locations and append them to __over_t
         locations, velocities = update(locations, velocities)
 
         pos_over_t.append(locations)
         vel_over_t.append(velocities)
 
-    print(pos_over_t)
     if dimensions == 2:
         # show paths in 2-D
-        show_path_2D(pos_over_t)
+        show_path_2D(pos_over_t, True)
 
     return 0
 
@@ -68,7 +66,7 @@ def pop_box():
         for i in range(dimensions):
             # create a random location in ith dimension
             loc.append(random.randint(0, L))
-            vel.append(random.randint(1, 2))
+            vel.append(random.randrange(-100, 101, 100))
 
         # dont put it in the locations if a particle already exists
         if loc in init_locations:
@@ -87,14 +85,14 @@ def update(positions, velocities):
     Updates the position of an inputed coordinate based on the algortihtm ___.
     Returns the updated position.
     """
-    global delta_t, dimensions
+    global delta_t, dimensions, N
 
     # list which will contain new positions and velocities
     new_positions = []
     new_velocities = []
 
     # loop over each particle in the list
-    for particle in range(len(positions)):
+    for particle in range(N):
 
         # list which will contain new positions and velocities
         new_particle_position = []
@@ -104,6 +102,8 @@ def update(positions, velocities):
         for i in range(dimensions):
             # update the new version of ith(x, y, z) position
             new_pos = positions[particle][i] + delta_t * velocities[particle][i]
+
+            # update the version of velocity
             new_vel = velocities[particle][i] # for now
 
             # check new_pos for boundary conditions
@@ -118,6 +118,35 @@ def update(positions, velocities):
         new_velocities.append(new_particle_velocity)
 
     return new_positions, new_velocities
+
+
+def average_velocity(velocity_needing_update, velocities_close_particles):
+    """
+    Computes the average velocity in each dimension and outputs the average of this
+    in each dimension.
+    """
+    global dimensions
+
+    # list containing update velocities
+    new_vel = []
+
+    # loop araound each dimesnion and calculate the average in that dimension.
+    for i in range(dimenisons):
+        # initialise new velocity in this dimesnion to 0 to later get the mean
+        new_vi = 0
+        # loop over all particles in vicintiy
+        for velocity in velocities_close_particles:
+            # add the value of the velocity to previous
+            new_vi += velocity[i]
+
+        # divide by how many particles to get mean
+        new_vi = new_vi / len(velocities_close_particles)
+
+        # place value of new_vi in the new vel array
+        new_vel.append(new_vi)
+
+    return new_vel
+
 
 def preiodic_boundaries(position):
     """
@@ -138,63 +167,38 @@ def preiodic_boundaries(position):
     else:
         return position
 
-    return correct_particle_position
 
-
-def animate(time_frame):
-    """
-    Animation function.
-    """
-    # all the positions of x and y for all particles
-    xar = []
-    yar = []
-    # loop around each particle in the time frame
-    for particle in time_frame:
-        # append to x and y the respective coordinates of the particle
-        xar.append(particle[0])
-        yar.append(particle[1])
-
-    return xar, yar
-
-
-
-
-
-def show_path_2D(coordinates):
+def show_path_2D(coordinates, clear = False):
     """
     Function which takes in the coordinates as described in straight_particle and
     plots the result on a scatter graph.
     """
+    global L, N, delta_t
+
+    # start interactive mode
     plt.ion()
 
     # crete eempty figure on which data will go and first subplot
     fig = plt.figure()
 
-
-
     # get into the correct time step
     for time_step in coordinates:
-        x_coor = []
-        y_coor = []
-
         # list of colours used for animation
-        colours = cm.rainbow(np.linspace(0, 1, len(time_step)))
-        print("colours: {}".format(colours))
-        print("number of particles: {}".format(len(time_step)))
+        colours = cm.rainbow(np.linspace(0, 1, N))
 
         # loop over each particle and colour
         for particle, c in zip(time_step, colours):
-            # append to x and y the respective coordinates of the particle
-            x_coor.append(particle[0])
-            y_coor.append(particle[1])
+            # plot x, y poistion of particle in a given colour and set axis to size of box
+            plt.scatter(particle[0], particle[1], s = 3, color = c)
+            plt.axis([0, L, 0, L])
 
-            print("Colour:{}".format(c))
-            # plot x, y distance graph
-            plt.scatter(x_coor, y_coor, color = c)
-
+        # show graph
         plt.show()
-        plt.pause(2)
-        plt.clf()
+        plt.pause(delta_t)
+
+        # decide if you want to clear
+        if clear == True:
+            plt.clf()
 
     return None
 
