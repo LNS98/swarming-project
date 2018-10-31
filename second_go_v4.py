@@ -15,13 +15,12 @@ dimensions = 2   # dimensions
 N = 100  # number of particles
 r = L * 0.05  #radius
 U = 1000    # number of updates
-noise_mag = 1  # magnitude of varied noise
+noise = 1  # magnitude of varied noise
 
 def main():
     """
     Execution of main program.
     """
-
     # all positions over time
     pos_over_t = []
     # all velocities over time
@@ -230,13 +229,13 @@ def new_vel_of_particle(velocity, close_particles_velocities):
     # get the new direction by applying pheta = arctan(<x> / <y>)
     if new_vel[0] == 0:
         # if y = 0 then make it go 90 deg
-        angle = math.pi / 4
+        angle = math.pi / 4 + random.uniform(- noise / 2, noise / 2)
     else:
         # get the new direction
-        angle = math.atan2(new_vel[1], new_vel[0])
+        angle = math.atan2(new_vel[1], new_vel[0]) + random.uniform(- noise / 2, noise / 2)
 
     # convert direction to x, y coordinates.
-    new_vel[0], new_vel[1] = angle_to_xy(angle)
+    new_vel[0], new_vel[1] = angle_to_xy(angle) 
 
     return new_vel
 
