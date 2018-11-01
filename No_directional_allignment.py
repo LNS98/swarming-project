@@ -4,24 +4,21 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
-import math
 import random
 
 # global variables used in the program
 L = 1000    # size of the box
 delta_t = 1     # time increment
-v_mag = 10      # total magnitude of each particle velocity
 dimensions = 2   # dimensions
 N = 100  # number of particles
-r = L * 0.05  #radius
-U = 1000    # number of updates
-noise = 1  # magnitude of varied noise
-time_pause = 0.001 # time pause for interactive graph
+r = L * 0.02  #radius
+U = 10000    # number of updates
 
 def main():
     """
     Execution of main program.
     """
+
     # all positions over time
     pos_over_t = []
     # all velocities over time
@@ -30,19 +27,9 @@ def main():
     # populate the box - returns initial poss and vels
     positions, velocities = pop_box()
 
-    # print allignment at start
-    print("Allignment at start is: {}".format(allignment(velocities)))
-
     # add init vel and poss to pos/vel over time
     pos_over_t.append(positions)
     vel_over_t.append(velocities)
-
-
-    #start array for time
-    time = []
-    # start array for allignment at each timestep
-    allignment_array = []
-
 
     # update position of each particle in the box
     for i in range(U):
@@ -59,57 +46,13 @@ def main():
         # add new positions in array over time
         pos_over_t.append(positions)
 
-
-        # append count to time array to keep track of timestep
-        time.append(i)
-        # append allignment to array of allignments at each time
-        allignment_array.append(allignment(velocities))
-
-
-    # print allignment at end
-    print("Allignment at end is: {}".format(allignment(velocities)))
-
-    # plot allignment vs time to see how it depends on noise
-    show_allignment_plot(time, allignment_array)
-
     if dimensions == 2:
         # show paths in 2-D
         show_path_2D(pos_over_t, clear = True)
 
     return 0
 
-
-def angle_to_xy(angle):
-    """
-    Takes an angle in radians as input as returns x and y poistion for the corresponding angle
-    using r as v_mag, a predifined value which is the magnitude of the velocity.
-    """
-    # get x using x = cos(angle) and y = sin(angle)
-    x = v_mag * math.cos(angle)
-    y = v_mag * math.sin(angle)
-
-    return x, y
-
-
-def test_angle_form():
-    """
-    Test formula for angle_to_xy.
-    """
-    # populate angles
-    angles = []
-    angle = - math.pi
-    for i in range(5):
-        angles.append(angle)
-        angle += 2 * math.pi / 4
-
-    # run function for angles
-    for angle in angles:
-        x, y = angle_to_xy(angle)
-        print(x, y)
-
-    return None
-
-
+# returns initial positions and velocities of all particles as array
 def pop_box():
     """
     Funciton which populates the box with N particles in random
@@ -134,15 +77,12 @@ def pop_box():
         pos = []
         vel = []
 
-        # get a random angle in radians to use as the velocity of the particle
-        angle = random.uniform(-math.pi, math.pi)
-
         for i in range(dimensions):
             # create a random position for each dimension
             pos.append(random.randint(0, L))
-            vel.append(angle_to_xy(angle)[i])
+            vel.append(random.randint(-100, 100) / 3)
 
-       # don't put it in the positions if a particle already exists there
+        # don't put it in the positions if a particle already exists there
         if pos in init_positions:
             continue
 
@@ -154,7 +94,7 @@ def pop_box():
     #returns the initial positions and velocities of all particles
     return init_positions, init_velocities
 
-
+# returns array of updated positions
 def update_pos(positions, velocities):
     """
     Updates locations
@@ -182,6 +122,7 @@ def update_pos(positions, velocities):
     return new_positions
 
 
+# returns array of updated velocities
 def update_vel(positions, velocities):
     """
     Updates velocity
@@ -199,15 +140,9 @@ def update_vel(positions, velocities):
         # find all the close particles
         close_particles_vel = particles_in_sq(positions[particle], positions, velocities)
 
-#        print("positons of particles: {} ".format(positions))
-#        print("velocities of particles: {} ".format(velocities))
-
-#        print("velocities of close particles: {}".format(close_particles_vel))
         #update velocity of each particle
         #function already loops through dimentions
         new_vel = new_vel_of_particle(velocities[particle], close_particles_vel)
-
-#        print("new particle velocity: {}".format(new_vel))
 
         #new velocity arrays
         new_velocities.append(new_vel)
@@ -216,6 +151,7 @@ def update_vel(positions, velocities):
     return new_velocities
 
 
+# returns new velocity of a single particle in V coord
 def new_vel_of_particle(velocity, close_particles_velocities):
     """
     Computes the average velocity in each dimension and outputs the average of this
@@ -237,21 +173,10 @@ def new_vel_of_particle(velocity, close_particles_velocities):
             new_vi += velocity[i]
 
         # divide by how many particles to get mean
-        average_vi = (new_vi) / len(close_particles_velocities)
+        new_vi = (new_vi) / len(close_particles_velocities)
 
         # place value of new_vi in the new vel array
-        new_vel.append(average_vi)
-
-    # get the new direction by applying pheta = arctan(<x> / <y>)
-    if new_vel[0] == 0:
-        # if y = 0 then make it go 90 deg
-        angle = math.pi / 4 + random.uniform(- noise / 2, noise / 2)
-    else:
-        # get the new direction
-        angle = math.atan2(new_vel[1], new_vel[0]) + random.uniform(- noise / 2, noise / 2)
-
-    # convert direction to x, y coordinates.
-    new_vel[0], new_vel[1] = angle_to_xy(angle)
+        new_vel.append(new_vi)
 
     return new_vel
 
@@ -323,6 +248,11 @@ def test_in_sq():
     plt.show()
 
 
+
+
+
+#test_in_sq()
+
 def periodic_boundaries(position):
     """
     If particle is over the limit of the box run this function and it will return
@@ -341,55 +271,6 @@ def periodic_boundaries(position):
     # otherwise just return the position
     else:
         return position
-
-
-def allignment(velocities):
-    """
-    Calculates the net allignment of the velocities of all the particles and
-    normmailses this value so that if they are all alligned the allignment is 1.
-    """
-    # initialise values for sum of all vx and vy
-    vx = 0
-    vy = 0
-
-    # sum all velocities in velocities array
-    for particle in velocities:
-        #add vx particle to sum of all vx
-        vx += particle[0]
-
-        #add vy particle to sum of all vy
-        vy += particle[1]
-
-    # Total magnitude of velocity of particles
-    v_mag_tot = math.sqrt(vx**2 + vy**2)
-
-    # Check alignment of particles
-    v_a = (1/(N * v_mag)) * (v_mag_tot)
-
-    return v_a
-
-
-def show_allignment_plot(time, allignment):
-
-    # plot time vs allignment for x vs y
-    plt.plot(time, allignment, linewidth=1, marker=".", markersize=3)
-    plt.xlabel("Time")
-    plt.ylabel("Allignment value")
-    plt.show()
-
-    return None
-
-# def show_allignment_interactive(time, allignment):
-#     """
-#     Function which will show how allignment changes as time evlolves
-#     """
-#
-#     # start interactive mode
-#     plot.ion()
-#
-#     # empty figure on which data will go
-#     fig = plt.figure()
-
 
 def show_path_2D(coordinates, clear = True):
     """
@@ -420,7 +301,7 @@ def show_path_2D(coordinates, clear = True):
 
         # show graph
         plt.show()
-        plt.pause(time_pause)
+        plt.pause(0.00001)
 
         # decide if you want to clear
         if clear == True:
