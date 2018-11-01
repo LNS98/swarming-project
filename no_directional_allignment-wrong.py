@@ -60,11 +60,6 @@ def pop_box():
     """
     global L, dimensions, N
 
-    # N must be less than L^2
-    if N >=  L ** 2 / 2:
-        print("N must be less than size of the box squared over 2")
-        return 1
-
     # initial positions of created particles
     init_positions = []
     # initial velocities of created particles

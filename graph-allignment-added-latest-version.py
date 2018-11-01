@@ -15,7 +15,7 @@ dimensions = 2   # dimensions
 N = 100  # number of particles
 r = L * 0.05  #radius
 U = 1000    # number of updates
-noise = 1  # magnitude of varied noise
+noise = 0  # magnitude of varied noise
 time_pause = 0.001 # time pause for interactive graph
 
 def main():
@@ -117,11 +117,6 @@ def pop_box():
     """
     global L, dimensions, N
 
-    # N must be less than L^2
-    if N >=  L ** 2 / 2:
-        print("N must be less than size of the box squared over 2")
-        return 1
-
     # initial positions of created particles
     init_positions = []
     # initial velocities of created particles
@@ -139,7 +134,7 @@ def pop_box():
 
         for i in range(dimensions):
             # create a random position for each dimension
-            pos.append(random.randint(0, L))
+            pos.append(random.uniform(0, L))
             vel.append(angle_to_xy(angle)[i])
 
        # don't put it in the positions if a particle already exists there
