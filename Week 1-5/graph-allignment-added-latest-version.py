@@ -8,12 +8,12 @@ import math
 import random
 
 # global variables used in the program
-L = 1000    # size of the box
+L = 5    # size of the box
 delta_t = 1     # time increment
-v_mag = 10      # total magnitude of each particle velocity
+v_mag = 0.03      # total magnitude of each particle velocity
 dimensions = 2   # dimensions
-N = 100  # number of particles
-r = L * 0.05  #radius
+N = 100 # number of particles
+r = 1  #radius
 U = 1000    # number of updates
 noise = 0  # magnitude of varied noise
 time_pause = 0.001 # time pause for interactive graph

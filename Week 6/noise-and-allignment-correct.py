@@ -7,22 +7,20 @@ import matplotlib.cm as cm
 import math
 import random
 
-#global variables used in the program
-L = 5    # size of the box
+# global variables used in the program
+L = 1000    # size of the box
 delta_t = 1     # time increment
 v_mag = 10      # total magnitude of each particle velocity
 dimensions = 2   # dimensions
 N = 100  # number of particles
-r = 1  #radius
-U = 200    # number of updates
-time_pause = 0.001 # time pause for interactive graph
-noise = 0 # noise
+r = L * 0.05  #radius
+U = 1000    # number of updates
+noise = 0.5  # magnitude of varied noise
+time_pause = 0.00001 # time pause for interactive graph
 
-
-def main_noise():
+def main():
     """
-    Execution of main program, wihtout any plots and with varying the paramenter of noise
-    in the input.
+    Execution of main program.
     """
     # all positions over time
     pos_over_t = []
@@ -31,6 +29,9 @@ def main_noise():
 
     # populate the box - returns initial poss and vels
     positions, velocities = pop_box()
+
+    # print allignment at start
+    print("Allignment at start is: {}".format(allignment(velocities)))
 
     # add init vel and poss to pos/vel over time
     pos_over_t.append(positions)
@@ -52,10 +53,15 @@ def main_noise():
         # add new positions in array over time
         pos_over_t.append(positions)
 
-    # calculate allingment
-    all = allignment(velocities)
 
-    return all
+    # print allignment at end
+    print("Allignment at end is: {}".format(allignment(velocities)))
+
+    if dimensions == 2:
+        # show paths in 2-D
+        show_path_2D(pos_over_t, clear = True)
+
+    return 0
 
 
 def angle_to_xy(angle):
@@ -77,14 +83,14 @@ def test_angle_form():
     # populate angles
     angles = []
     angle = - math.pi
-    for i in range(7):
+    for i in range(5):
         angles.append(angle)
         angle += 2 * math.pi / 4
 
     # run function for angles
     for angle in angles:
         x, y = angle_to_xy(angle)
-        print("Angle: {} \n x: {} \n y: {}".format(angle, x, y))
+        print(x, y)
 
     return None
 
@@ -344,46 +350,6 @@ def allignment(velocities):
     return v_a
 
 
-def show_allignment_plot(time, allignment):
-
-    # plot time vs allignment for x vs y
-    plt.plot(time, allignment, linewidth=1, marker=".", markersize=3)
-    plt.xlabel("Time")
-    plt.ylabel("Allignment value")
-    plt.show()
-
-    return None
-
-def noise_variation():
-    """
-    Plots the variation of the noise vs teh total allignment of the funciton.
-    """
-    # global variables
-    global N, L, noise
-
-    # list with values of nosie, L and N
-    noise_list = list(np.linspace(0, 5, num = 100))
-    # L_list = [3.1, 5, 10, 31.6, 50]
-    # N = [40, 100, 400, 4000, 10000]
-
-    all_list = []
-
-    # for each value in list run main funciton
-    for no in noise_list:
-        noise = no
-        all = main_noise()
-        all_list.append(all)
-
-    # plot the noise against allignment
-    plt.scatter(noise_list, all_list, s = 2, label = "N = 40, L = 3.1")
-    plt.xlabel("nosie")
-    plt.ylabel("allignment")
-    plt.legend()
-    plt.show()
-
-    return None
-
-
 def show_path_2D(coordinates, clear = True):
     """
     Function which takes in the coordinates as described in straight_particle and
@@ -422,4 +388,4 @@ def show_path_2D(coordinates, clear = True):
     return None
 
 
-noise_variation()
+main()
