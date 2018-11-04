@@ -8,15 +8,15 @@ import math
 import random
 
 # global variables used in the program
-L = 1000    # size of the box
+L = 3.1    # size of the box
 delta_t = 1     # time increment
-v_mag = 10      # total magnitude of each particle velocity
+v_mag = 0.03      # total magnitude of each particle velocity
 dimensions = 2   # dimensions
-N = 100  # number of particles
-r = L * 0.05  #radius
-U = 1000    # number of updates
-noise = 0.5  # magnitude of varied noise
-time_pause = 0.00001 # time pause for interactive graph
+N = 40 # number of particles
+r = 1  #radius
+U = 100    # number of updates
+noise = 0 # magnitude of varied noise
+time_pause = 0.001 # time pause for interactive graph
 
 def main():
     """
@@ -38,6 +38,12 @@ def main():
     vel_over_t.append(velocities)
 
 
+    #start array for time
+    time = []
+    # start array for allignment at each timestep
+    allignment_array = []
+
+
     # update position of each particle in the box
     for i in range(U):
 
@@ -54,8 +60,17 @@ def main():
         pos_over_t.append(positions)
 
 
+        # append count to time array to keep track of timestep
+        time.append(i)
+        # append allignment to array of allignments at each time
+        allignment_array.append(allignment(velocities))
+
+
     # print allignment at end
     print("Allignment at end is: {}".format(allignment(velocities)))
+
+    # plot allignment vs time to see how it depends on noise
+    show_allignment_plot(time, allignment_array)
 
     if dimensions == 2:
         # show paths in 2-D
@@ -101,7 +116,6 @@ def pop_box():
     locations and random velocities inside the box.
     """
     global L, dimensions, N
-
 
     # initial positions of created particles
     init_positions = []
@@ -348,6 +362,28 @@ def allignment(velocities):
     v_a = (1/(N * v_mag)) * (v_mag_tot)
 
     return v_a
+
+
+def show_allignment_plot(time, allignment):
+
+    # plot time vs allignment for x vs y
+    plt.plot(time, allignment, linewidth=1, marker=".", markersize=3)
+    plt.xlabel("Time")
+    plt.ylabel("Allignment value")
+    plt.show()
+
+    return None
+
+# def show_allignment_interactive(time, allignment):
+#     """
+#     Function which will show how allignment changes as time evlolves
+#     """
+#
+#     # start interactive mode
+#     plot.ion()
+#
+#     # empty figure on which data will go
+#     fig = plt.figure()
 
 
 def show_path_2D(coordinates, clear = True):

@@ -7,20 +7,22 @@ import matplotlib.cm as cm
 import math
 import random
 
-# global variables used in the program
-L = 5    # size of the box
+#global variables used in the program
+L = 3.1   # size of the box
 delta_t = 1     # time increment
-v_mag = 0.03      # total magnitude of each particle velocity
+v_mag = 0.03    # total magnitude of each particle velocity
 dimensions = 2   # dimensions
-N = 100 # number of particles
+N = 40  # number of particles
 r = 1  #radius
-U = 1000    # number of updates
-noise = 0  # magnitude of varied noise
+U = 15   # number of updates
 time_pause = 0.001 # time pause for interactive graph
+noise = 0 # noise
 
-def main():
+
+def main_noise():
     """
-    Execution of main program.
+    Execution of main program, wihtout any plots and with varying the paramenter of noise
+    in the input.
     """
     # all positions over time
     pos_over_t = []
@@ -30,18 +32,9 @@ def main():
     # populate the box - returns initial poss and vels
     positions, velocities = pop_box()
 
-    # print allignment at start
-    print("Allignment at start is: {}".format(allignment(velocities)))
-
     # add init vel and poss to pos/vel over time
     pos_over_t.append(positions)
     vel_over_t.append(velocities)
-
-
-    #start array for time
-    time = []
-    # start array for allignment at each timestep
-    allignment_array = []
 
 
     # update position of each particle in the box
@@ -59,24 +52,11 @@ def main():
         # add new positions in array over time
         pos_over_t.append(positions)
 
+    # calculate allingment
+    all = allignment(velocities)
 
-        # append count to time array to keep track of timestep
-        time.append(i)
-        # append allignment to array of allignments at each time
-        allignment_array.append(allignment(velocities))
+    return all
 
-
-    # print allignment at end
-    print("Allignment at end is: {}".format(allignment(velocities)))
-
-    # plot allignment vs time to see how it depends on noise
-    show_allignment_plot(time, allignment_array)
-
-    if dimensions == 2:
-        # show paths in 2-D
-        show_path_2D(pos_over_t, clear = True)
-
-    return 0
 
 
 def angle_to_xy(angle):
@@ -98,14 +78,14 @@ def test_angle_form():
     # populate angles
     angles = []
     angle = - math.pi
-    for i in range(5):
+    for i in range(7):
         angles.append(angle)
         angle += 2 * math.pi / 4
 
     # run function for angles
     for angle in angles:
         x, y = angle_to_xy(angle)
-        print(x, y)
+        print("Angle: {} \n x: {} \n y: {}".format(angle, x, y))
 
     return None
 
@@ -116,6 +96,7 @@ def pop_box():
     locations and random velocities inside the box.
     """
     global L, dimensions, N
+
 
     # initial positions of created particles
     init_positions = []
@@ -192,7 +173,7 @@ def update_vel(positions, velocities):
 #        print("\nparticle in question: {}".format(positions[particle]))
 
         # find all the close particles
-        close_particles_vel = particles_in_sq(positions[particle], positions, velocities)
+        close_particles_vel = particles_in_rad(positions[particle], positions, velocities)
 
 #        print("positons of particles: {} ".format(positions))
 #        print("velocities of particles: {} ".format(velocities))
@@ -251,35 +232,40 @@ def new_vel_of_particle(velocity, close_particles_velocities):
     return new_vel
 
 
-def particles_in_sq(chosen_particle, positions, velocities):
+def particles_in_rad(chosen_particle, positions, velocities):
     """
     Checks and records the particles which are within a square of lengt r.
     """
 
-    # array with all indecies of all particles within range
+    # array with all indices of all particles within range
     velocities_within_r = []
 
-    # check over all particles in positions
+    # check for each particle
     for index in range(N):
         # variable used to aid if its in radius
         in_size = True
 
-#        print("particles being compared: {} {}".format(chosen_particle, positions[index]))
-        # check if it is smaller than the radius in all
+        # empty array of x and y distances between particle in question and neighbour
+        lenghts = []
+
+        # loop checking f distance between particles in smaller than r
         for i in range(dimensions):
 
             inside_distance = abs(chosen_particle[i] - positions[index][i])
 
             wrap_distance = L-inside_distance
 
-            distance = min(inside_distance, wrap_distance)
+            # define side of triangle to find distance
+            lenghts.append(min(inside_distance, wrap_distance))
 
-            # if the size is over then break out of loop as it won't be in radius
-            if distance > r:
-#                print("particle distance and 'r' (inside sq function): {} and {}".format(distance, r))
-                in_size = False
-                break
-        #If it is within square add velocity to all particles within r
+        # define distance from chosen particle to neighbout particle index
+        distance = math.sqrt(lenghts[0]**2 + lenghts[1]**2)
+
+        # if the size is over then break out of loop as it won't be in radius
+        if distance > r:
+            in_size = False
+
+        #If it is within radius add velocity to all particles within r
         if in_size == True:
             # get the index of the particle
             velocities_within_r.append(velocities[index])
@@ -308,7 +294,7 @@ def test_in_sq():
     print(velocities)
 
     # call in radius function to see whether it works correctly
-    close_1 = particles_in_sq(positions[0], positions, velocities)
+    close_1 = particles_in_rad(positions[0], positions, velocities)
 
     print(close_1)
 
@@ -374,16 +360,35 @@ def show_allignment_plot(time, allignment):
 
     return None
 
-# def show_allignment_interactive(time, allignment):
-#     """
-#     Function which will show how allignment changes as time evlolves
-#     """
-#
-#     # start interactive mode
-#     plot.ion()
-#
-#     # empty figure on which data will go
-#     fig = plt.figure()
+def noise_variation():
+    """
+    Plots the variation of the noise vs teh total allignment of the funciton.
+    """
+    # global variables
+    global N, L, noise
+
+    # list with values of nosie, L and N
+    noise_list = list(np.linspace(0, 5, num = 100))
+    # L_list = [3.1, 5, 10, 31.6, 50]
+    # N = [40, 100, 400, 4000, 10000]
+
+    all_list = []
+
+    # for each value in list run main funciton
+    for no in noise_list:
+        noise = no
+        all = main_noise()
+        all_list.append(all)
+
+    # plot the noise against allignment
+    plt.scatter(noise_list, all_list, s = 2, label = "N = {}, L = {}".format(N, L))
+    plt.axis([0, 5, 0, 1.05])
+    plt.xlabel("nosie")
+    plt.ylabel("allignment")
+    plt.legend()
+    plt.show()
+
+    return None
 
 
 def show_path_2D(coordinates, clear = True):
@@ -424,4 +429,4 @@ def show_path_2D(coordinates, clear = True):
     return None
 
 
-main()
+noise_variation()
