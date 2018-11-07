@@ -388,7 +388,6 @@ def noise_variation():
 
     return all_list
 
-
 def average_noise_allignment():
     # add together all values for allignment and divide by the number of repeats
 
@@ -422,50 +421,38 @@ def average_noise_allignment():
 
 
     # plot the average allignment values vs noise
-    plt.scatter(noise_list, average_allignment, s = 2, label = "N = {}, L = {}".format(N, L))
-    plt.xlabel("noise")
-    plt.ylabel("allignment")
-    plt.legend()
-    plt.show()
+    # plt.scatter(noise_list, average_allignment, s = 2, label = "N = {}, L = {}".format(N, L))
+    # plt.xlabel("noise")
+    # plt.ylabel("allignment")
+    # plt.legend()
+    # plt.show()
+
+    return average_allignment
+
+def all_averages_plot():
+    """
+    Plots all averages for varying densities
+    """
+    # list of lenghts
+    Lenghts = []
+    # list of numbers of particles
+    Numbers = []
+
+
+
+    for l, n in zip(Lenghts, Numbers):
+        L = l
+        N = n
+        alligned_array = average_noise_allignment()
+
+
+    #Creates just a figure and only one subplot
+    fig, ax = plt.subplots()
+    ax.plot(x, y)
+    ax.set_title('Average Plots')
+        #add plots as they are computer? or calculate them and then plot them all at once?
+
 
     return None
 
-def show_path_2D(coordinates, clear = True):
-    """
-    Function which takes in the coordinates as described in straight_particle and
-    plots the result on a scatter graph.
-    """
-    global L, N, delta_t
-
-    # start interactive mode
-    plt.ion()
-
-    # crete eempty figure on which data will go and first subplot
-    fig = plt.figure()
-
-    # get into the correct time step
-    for time_step in coordinates:
-        # list of colours used for animation
-        colours = cm.rainbow(np.linspace(0, 1, N))
-
-        # loop over each particle and colour
-        for particle, c in zip(time_step, colours):
-            # plot x, y poistion of particle in a given colour and set axis to size of box
-            plt.scatter(particle[0], particle[1], s = 3, color = c)
-            # plt.plot([particle[0] - r, particle[0] + r, particle[0] + r, particle[0] - r, particle[0] - r],
-            #          [particle[1] - r, particle[1] - r, particle[1] + r, particle[1] + r, particle[1] - r],
-            #          color = c)
-            plt.axis([0, L, 0, L])
-
-        # show graph
-        plt.show()
-        plt.pause(time_pause)
-
-        # decide if you want to clear
-        if clear == True:
-            plt.clf()
-
-    return None
-
-
-average_noise_allignment()
+all_averages_plot()
