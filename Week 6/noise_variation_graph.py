@@ -429,4 +429,4 @@ def show_path_2D(coordinates, clear = True):
     return None
 
 
-noise_variation()
+#noise_variation()

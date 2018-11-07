@@ -1,11 +1,13 @@
 
 # get lots of particles on the thing and make them allign
 
+import time
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import math
 import random
+import pandas as pd
 
 #global variables used in the program
 L = 3.1    # size of the box
@@ -14,10 +16,9 @@ v_mag = 0.03      # total magnitude of each particle velocity
 dimensions = 2   # dimensions
 N = 40  # number of particles
 r = 1  #radius
-U = 15    # number of updates
+U = 30    # number of updates
 time_pause = 0.001 # time pause for interactive graph
 noise = 0 # noise
-average_repeats = 100 # number of repeats to take the average
 
 
 def main_noise():
@@ -364,10 +365,10 @@ def noise_variation():
     Plots the variation of the noise vs teh total allignment of the funciton.
     """
     # global variables
-    global N, L, noise
+    global N, L, noise, U
 
     # list with values of nosie, L and N
-    noise_list = list(np.linspace(0, 5, num = 100))
+    noise_list = list(np.linspace(0, 5, num = 20))
     # L_list = [3.1, 5, 10, 31.6, 50]
     # N = [40, 100, 400, 4000, 10000]
 
@@ -375,8 +376,13 @@ def noise_variation():
 
     # for each value in list run main funciton
     for no in noise_list:
+        # change the noise to new value of noise
         noise = no
+
+        # get the allignnment from the main funciton
         all = main_noise()
+
+        # append this to the all_list
         all_list.append(all)
 
     # plot the noise against allignment
@@ -388,16 +394,19 @@ def noise_variation():
 
     return all_list
 
-def average_noise_allignment():
-    # add together all values for allignment and divide by the number of repeats
+
+def average_noise_allignment(n_times):
+    """
+    add together all values for allignment and divide by the number of repeats
+    """
 
     # list with values of nosie, L and N
-    noise_list = list(np.linspace(0, 5, num = 100))
+    noise_list = list(np.linspace(0, 5, num = 20))
 
     all_allign = []
 
     # for each repeat, add new allignment values to old allignment values
-    for repeat in range(average_repeats):
+    for repeat in range(n_times):
 
         # generate new allignment values
         all_list = noise_variation()
@@ -405,54 +414,145 @@ def average_noise_allignment():
         # add these new allignment values to the all_allign list
         all_allign.append(all_list)
 
+    # read in data from file if file exists
+    try:
+        # read in csv as dataframe
+        df = pd.read_csv("./averages/N_{}.csv".format(N))
+
+        # convert df to list and get the number of counts for the average
+        prev_ave = df["averages"].values.tolist()
+        current_averages = int(df["number of averages"].iloc[0] + n_times)
+
+        # append this to all list
+        all_allign.append(prev_ave)
+
+    except FileNotFoundError:
+        # set the current averages to the number of repeats
+        current_averages = n_times
 
     # empty array of average allignment
     average_allignment = []
 
+    # loop over all the items in the list all_list
     for i in range(len(all_list)):
+        # initialise sum which will be average
         sum = 0
 
-        for element in range(average_repeats):
+        # loop over each repeated list from the averaginf process
+        for element in range(n_times):
+            # sum list to then get average
             sum += all_allign[element][i]
 
-        sum = sum/average_repeats
+        # if file has been read
+        if len(all_allign) == n_times + 1:
+            # get the old value for the avearge correctly weighted
+            old_ave = all_allign[n_times][i] * current_averages
 
+            # last element multiply by number of times from previous counts
+            sum += old_ave
+
+            # divide by number of repeats to get average
+            sum = sum / (n_times + current_averages)
+        else:
+            # don't  account for extra counts from file
+            sum = sum / n_times
+
+        # append to the lsit containing the averages
         average_allignment.append(sum)
 
+    # convert the average allignment to a df and the noises as well
+    d = {"noise": noise_list, "averages": average_allignment, "number of averages": current_averages}
+    df_w = pd.DataFrame(data = d)
+
+    # write it to csv file
+    df_w.to_csv("./averages/N_{}.csv".format(N), index = False)
 
     # plot the average allignment values vs noise
-    # plt.scatter(noise_list, average_allignment, s = 2, label = "N = {}, L = {}".format(N, L))
-    # plt.xlabel("noise")
-    # plt.ylabel("allignment")
-    # plt.legend()
-    # plt.show()
-
-    return average_allignment
-
-def all_averages_plot():
-    """
-    Plots all averages for varying densities
-    """
-    # list of lenghts
-    Lenghts = []
-    # list of numbers of particles
-    Numbers = []
-
-
-
-    for l, n in zip(Lenghts, Numbers):
-        L = l
-        N = n
-        alligned_array = average_noise_allignment()
-
-
-    #Creates just a figure and only one subplot
-    fig, ax = plt.subplots()
-    ax.plot(x, y)
-    ax.set_title('Average Plots')
-        #add plots as they are computer? or calculate them and then plot them all at once?
-
+    plt.scatter(noise_list, average_allignment, s = 2, label = "N = {}, L = {}".format(N, L))
+    plt.axis([0, 5.02, 0, 1.02])
+    plt.xlabel("noise")
+    plt.ylabel("allignment")
+    plt.legend()
+    #plt.show()
 
     return None
 
-all_averages_plot()
+def run_to_get_averages(n_times):
+    """
+    Run this function to get the averages for each of the different setups
+    (defined below) for 'n_times' repeats plotted on the same graph.
+    """
+    global N, L, U
+    # initalise the differnt values of L and N that are needed
+    # L_list = [3.1, 5, 10, 31.6, 50]
+    # N_list = [40, 100, 400, 4000, 10000]
+    # U_best = [80, 200, 300, 800, 1500]
+
+    L_list = [3.1, 5]
+    N_list = [40, 100]
+    U_best = [80, 200]
+
+    # loop over the values in the lists above
+    for i in range(len(L_list)):
+        # change the values of L and N to the ones from the list
+        N = N_list[i]
+        L = L_list[i]
+        U = U_best[i]
+
+        # check the time of the program
+        start = time.time()
+
+        # run the average function n_times
+        average_noise_allignment(n_times)
+
+        # time after the function
+        end = time.time()
+        print("\n-------- time of program: {} -------------\n".format(end - start))
+
+    #show the scatter plot
+    plt.show()
+
+    return None
+
+
+
+def show_path_2D(coordinates, clear = True):
+    """
+    Function which takes in the coordinates as described in straight_particle and
+    plots the result on a scatter graph.
+    """
+    global L, N, delta_t
+
+    # start interactive mode
+    plt.ion()
+
+    # crete eempty figure on which data will go and first subplot
+    fig = plt.figure()
+
+    # get into the correct time step
+    for time_step in coordinates:
+        # list of colours used for animation
+        colours = cm.rainbow(np.linspace(0, 1, N))
+
+        # loop over each particle and colour
+        for particle, c in zip(time_step, colours):
+            # plot x, y poistion of particle in a given colour and set axis to size of box
+            plt.scatter(particle[0], particle[1], s = 3, color = c)
+            # plt.plot([particle[0] - r, particle[0] + r, particle[0] + r, particle[0] - r, particle[0] - r],
+            #          [particle[1] - r, particle[1] - r, particle[1] + r, particle[1] + r, particle[1] - r],
+            #          color = c)
+            plt.axis([0, L, 0, L])
+
+        # show graph
+        plt.show()
+        plt.pause(time_pause)
+
+        # decide if you want to clear
+        if clear == True:
+            plt.clf()
+
+    return None
+
+for i in range(5):
+    # check the time of the program
+    run_to_get_averages(20)
