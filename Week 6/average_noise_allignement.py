@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import math
 import random
+import pandas as pd
 
 #global variables used in the program
 L = 3.1    # size of the box
@@ -390,7 +391,9 @@ def noise_variation():
 
 
 def average_noise_allignment():
-    # add together all values for allignment and divide by the number of repeats
+    """
+    add together all values for allignment and divide by the number of repeats
+    """
 
     # list with values of nosie, L and N
     noise_list = list(np.linspace(0, 5, num = 100))
@@ -410,26 +413,33 @@ def average_noise_allignment():
     # empty array of average allignment
     average_allignment = []
 
+    # loop voer all the items in the list all_list
     for i in range(len(all_list)):
+        # initialise sum which will be average
         sum = 0
 
+        # loop over each repeated list from the averaginf process
         for element in range(average_repeats):
+            # sum list to then get average
             sum += all_allign[element][i]
 
         sum = sum/average_repeats
 
+        # append to the lsit containing the averages
         average_allignment.append(sum)
-
-
 
     # plot the average allignment values vs noise
     plt.scatter(noise_list, average_allignment, s = 2, label = "N = {}, L = {}".format(N, L))
+    plt.axis([0, 5, 0, 1.02])
     plt.xlabel("noise")
     plt.ylabel("allignment")
     plt.legend()
     plt.show()
 
     return None
+
+
+
 
 def show_path_2D(coordinates, clear = True):
     """
@@ -467,6 +477,3 @@ def show_path_2D(coordinates, clear = True):
             plt.clf()
 
     return None
-
-
-average_noise_allignment()
