@@ -473,7 +473,11 @@ def average_noise_allignment(n_times):
     # plt.xlabel("noise")
     # plt.ylabel("allignment")
     # plt.legend()
+<<<<<<< HEAD
     #plt.show()
+=======
+    # plt.show()
+>>>>>>> 56ed8df711e7c170b706e639483c7cd300ca27dc
 
     return None
 
@@ -488,9 +492,9 @@ def run_to_get_averages(n_times):
     # N_list = [40, 100, 400, 4000, 10000]
     # U_best = [80, 200, 300, 800, 1500]
 
-    L_list = [10]
-    N_list = [400]
-    U_best = [300]
+    L_list = [5]
+    N_list = [100]
+    U_best = [200]
 
     # loop over the values in the lists above
     for i in range(len(L_list)):
