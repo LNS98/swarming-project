@@ -421,7 +421,7 @@ def average_noise_allignment(n_times):
 
         # convert df to list and get the number of counts for the average
         prev_ave = df["averages"].values.tolist()
-        current_averages = int(df["number of averages"].iloc[0] + n_times)
+        current_averages = int(df["number of averages"].iloc[0])
 
         # append this to all list
         all_allign.append(prev_ave)
@@ -461,19 +461,19 @@ def average_noise_allignment(n_times):
         average_allignment.append(sum)
 
     # convert the average allignment to a df and the noises as well
-    d = {"noise": noise_list, "averages": average_allignment, "number of averages": current_averages}
+    d = {"noise": noise_list, "averages": average_allignment, "number of averages": (current_averages + n_times)}
     df_w = pd.DataFrame(data = d)
 
     # write it to csv file
     df_w.to_csv("./averages/N_{}.csv".format(N), index = False)
 
     # plot the average allignment values vs noise
-    plt.scatter(noise_list, average_allignment, s = 2, label = "N = {}, L = {}".format(N, L))
-    plt.axis([0, 5.02, 0, 1.02])
-    plt.xlabel("noise")
-    plt.ylabel("allignment")
-    plt.legend()
-    #plt.show()
+    # plt.scatter(noise_list, average_allignment, s = 2, label = "N = {}, L = {}".format(N, L))
+    # plt.axis([0, 5.02, 0, 1.02])
+    # plt.xlabel("noise")
+    # plt.ylabel("allignment")
+    # plt.legend()
+    # plt.show()
 
     return None
 
@@ -488,9 +488,9 @@ def run_to_get_averages(n_times):
     # N_list = [40, 100, 400, 4000, 10000]
     # U_best = [80, 200, 300, 800, 1500]
 
-    L_list = [3.1, 5]
-    N_list = [40, 100]
-    U_best = [80, 200]
+    L_list = [5]
+    N_list = [100]
+    U_best = [200]
 
     # loop over the values in the lists above
     for i in range(len(L_list)):
@@ -510,7 +510,7 @@ def run_to_get_averages(n_times):
         print("\n-------- time of program: {} -------------\n".format(end - start))
 
     #show the scatter plot
-    plt.show()
+    #plt.show()
 
     return None
 
