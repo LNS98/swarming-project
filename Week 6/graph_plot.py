@@ -11,9 +11,11 @@ def main():
     """
     # list contining correct Ns
     N_list = [40, 100, 400]
+    markers = ["s", "v", "o"]
+
 
     # loop around length of N
-    for N in N_list:
+    for N, m in zip(N_list, markers):
         # import the data as dfs
         df = pd.read_csv("./Averages/N_{}.csv".format(N))
 
@@ -21,7 +23,7 @@ def main():
         num_averages = df["number of averages"].iloc[1]
 
         # plot the data
-        plt.scatter(df["noise"], df["averages"], s = 2, label = "N = {} (repeats = {})".format(N, num_averages))
+        plt.scatter(df["noise"], df["averages"], s = 5, label = "N = {} (repeats = {})".format(N, num_averages), marker = m)
         plt.axis([0, 5.02, 0, 1.02])
         plt.xlabel("noise")
         plt.ylabel("allignment")
