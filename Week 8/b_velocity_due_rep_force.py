@@ -1,5 +1,7 @@
-# This file contains a program which will update velocity according to neighbours' force
-# Noise is still angular only
+"""
+This file contains a program which will update velocity according to neighbours' force.
+Noise is still angular only.
+"""
 
 
 import numpy as np
