@@ -13,19 +13,23 @@ L = 31.6  # size of the box
 delta_t = 1     # time increment
 v_mag = 0.3      # total magnitude of each particle velocity
 dimensions = 2   # dimensions
-N = 10 # number of particles
-a = 10 #radius will be called a in this program
-U = 500    # number of updates
-noise = 0 # magnitude of varied noise
-time_pause = 0.1 # time pause for interactive graph
+N = 40 # number of particles
+r = 2 # radius for vicsek model
+a = 1  #radius for Marchetti model will be called a in this program
+U = 1000    # number of updates
+noise_vic = 0 # magnitude of varied noise for vicshek model
+noise_mar = 0 # magnitude of varied noise for marchetti model
+time_pause = 0.001 # time pause for interactive graph
 k = 0.1 # spring constant ???
-mu = 1 # ??? mobility
+mu = 0.1 # ??? mobility
 
 
 def main():
     """
     Execution of main program.
     """
+    global noise_vic
+
     # all positions over time
     pos_over_t = []
     # all velocities over time
@@ -42,8 +46,13 @@ def main():
     #start array for time
     time = []
 
+
+
     # update position of each particle in the box
     for i in range(U):
+        # start turning up the noise once the particles have come to a staionary state and dont let the noise go over 5
+        if i > 300 and i % 100 == 0:
+            noise_vic += 0.5
 
         # update velocities dependant on previous positions
         velocities = update_vel(positions, velocities)
@@ -94,7 +103,7 @@ def pop_box():
         for i in range(dimensions):
             # create a random position for each dimension
             pos.append(random.uniform(0, L))
-            vel.append(angle_to_xy(angle)[i])
+            vel.append(angle_to_xy(v_mag, angle)[i])
 
        # don't put it in the positions if a particle already exists there
         if pos in init_positions:
@@ -108,16 +117,44 @@ def pop_box():
     #returns the initial positions and velocities of all particles
     return init_positions, init_velocities
 
-def angle_to_xy(angle):
+def angle_to_xy(r, angle):
     """
     Takes an angle in radians as input as returns x and y poistion for the corresponding angle
     using r as v_mag, a predifined value which is the magnitude of the velocity.
     """
     # get x using x = cos(angle) and y = sin(angle)
-    x = v_mag * math.cos(angle)
-    y = v_mag * math.sin(angle)
+    x = r * math.cos(angle)
+    y = r * math.sin(angle)
 
     return x, y
+
+def test_xy_angle():
+    """
+    test to see if inverting between a angle and vice e versa works as expected
+    """
+    # angle = math.atan2(new_vel[1], new_vel[0])
+
+    # random x, y
+    x, y = -0.02597136287429149, -0.14727925296049865
+    r = mag([x, y])
+
+    # get the angle for the x, y positions
+    angle = math.atan2(y, x)
+    print(angle)
+
+    # get the x, positions back
+    x, y = angle_to_xy(r, angle)
+    print(x, y)
+
+    return None
+
+
+def mag(vector):
+    """
+    Finds the magnitude of a vector.
+    """
+    return math.sqrt(sum(i**2 for i in vector))
+
 
 def update_pos(positions, velocities):
     """
@@ -157,20 +194,70 @@ def update_vel(positions, velocities):
     # loop over each particle
     for particle in range(N):
 
-        # find all the close particles positions and velocities
-        close_particles_vel, close_particles_pos = particles_in_sq(positions[particle], positions, velocities)
+        # find all the close particles positions and velocities for marchetti model
+        close_particles_vel_mar, close_particles_pos_mar = particles_in_sq(a, positions[particle], positions, velocities)
+        # find all close particles for vicsek model
+        close_particles_vel_vic = particles_in_sq(r, positions[particle], positions, velocities)[0]
 
-        #update velocity of each particle
-        #function already loops through dimentions
-        new_vel = new_vel_of_particle(velocities[particle], positions[particle], close_particles_vel, close_particles_pos)
+        # update velocity of each particle
+        # function already loops through dimentions
+        # update for new velocity given vicshek model
+        new_vel_vic = new_vel_of_particle_vic(velocities[particle], close_particles_vel_vic)
+        # update new velocity for marchetti model
+        new_vel_mar = new_vel_of_particle_mar(velocities[particle], positions[particle], close_particles_vel_mar, close_particles_pos_mar)
+
+        new_vel_tot = [(new_vel_vic[0] + new_vel_mar[0]) / 2, (new_vel_vic[1] + new_vel_mar[1]) / 2]
+
 
         # append the new velocity of each particle to array of all new vels
-        new_velocities.append(new_vel)
+        new_velocities.append(new_vel_tot)
 
     #returns array of new velocities for all particles
     return new_velocities
 
-def new_vel_of_particle(velocity, position, close_particles_velocities, close_particles_positions):
+def new_vel_of_particle_vic(velocity, close_particles_velocities):
+    """
+    Computes the average velocity in each dimension and outputs the average of this
+    in each dimension.
+    """
+    global dimensions
+
+    # list containing updated velocity Vx, Vy, Vz
+    new_vel = []
+
+    # loop araound each dimesnion and calculate the average in that dimension.
+    for i in range(dimensions):
+        # initialise new velocity in this dimesnion to 0 to later get the mean
+        new_vi = 0
+
+        # loop over all particles in vicintiy
+        for velo in close_particles_velocities:
+            # add the value of the velocity to previous
+            new_vi += velo[i]
+
+        # divide by how many particles to get mean
+        average_vi = (new_vi) / len(close_particles_velocities)
+
+        # place value of new_vi in the new vel array
+        new_vel.append(average_vi)
+
+
+
+    # get the new direction by applying pheta = arctan(<x> / <y>)
+    if new_vel[0] == 0:
+        # if y = 0 then make it go 90 deg
+        angle = math.pi / 4 + random.uniform(- noise_vic / 2, noise_vic / 2)
+    else:
+        # get the new direction
+        angle = math.atan2(new_vel[1], new_vel[0]) + random.uniform(- noise_vic / 2, noise_vic / 2)
+
+    # convert direction to x, y coordinates.
+    new_vel[0], new_vel[1] = angle_to_xy(v_mag, angle)
+
+
+    return new_vel
+
+def new_vel_of_particle_mar(velocity, position, close_particles_velocities, close_particles_positions):
     """
     Computes the average velocity in each dimension according to all and outputs the average of this
     in each dimension, also includes rotational noise
@@ -203,11 +290,22 @@ def new_vel_of_particle(velocity, position, close_particles_velocities, close_pa
         # multiply by mu
         vel_coord *= mu
 
-        # add old Vx
-        vel_coord += v_mag
+        # add old Vx and nosie
+        vel_coord += velocity[i]
 
         # place value of each new velocity for x/y in array for new total vel
         new_vel.append(vel_coord)
+
+    # get the new direction by applying pheta = arctan(<x> / <y>)
+    if new_vel[0] == 0:
+        # if y = 0 then make it go 90 deg
+        angle = math.pi / 4 + random.uniform(- noise_mar / 2, noise_mar / 2)
+    else:
+        # get the new direction
+        angle = math.atan2(new_vel[1], new_vel[0]) + random.uniform(- noise_mar / 2, noise_mar / 2)
+
+    new_vel[0], new_vel[1] = angle_to_xy(mag(new_vel), angle)
+
 
 # Noise formula DO NOT DELETE random.uniform(- noise / 2, noise / 2)
 
@@ -243,7 +341,7 @@ def distance(p_1_pos, p_2_pos):
 
     return rij
 
-def particles_in_sq(chosen_particle, positions, velocities):
+def particles_in_sq(a, chosen_particle, positions, velocities):
     """
     Checks and records the particles which are within radius.
     Returns only velocities which are within radius.
@@ -321,11 +419,13 @@ def show_path_2D(coordinates, clear = True):
         # loop over each particle and colour
         for particle, c in zip(time_step, colours):
             # plot x, y poistion of particle in a given colour and set axis to size of box
-            plt.scatter(particle[0], particle[1], s = 5, color = c)
+            plt.scatter(particle[0], particle[1], s = 15, color = c)
             # plt.plot([particle[0] - r, particle[0] + r, particle[0] + r, particle[0] - r, particle[0] - r],
             #          [particle[1] - r, particle[1] - r, particle[1] + r, particle[1] + r, particle[1] - r],
             #          color = c)
             plt.axis([0, L, 0, L])
+            plt.title("a = {}, r = {}\nnoise vischek = {}, noise marchetti = {}".format(a, r, noise_vic, noise_mar))
+
 
         # show graph
         plt.show()
