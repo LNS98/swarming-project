@@ -1,5 +1,5 @@
 """
-Plot the graphs for the allignment of paricle
+Plots all averages for the alignment of each system from the values written to the file in the previous program. 
 """
 
 import matplotlib.pyplot as plt
