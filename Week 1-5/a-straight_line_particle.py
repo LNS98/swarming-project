@@ -1,4 +1,6 @@
-# program which gets a particle to go in a straight line
+"""
+Program which gets a particle to go in a straight line
+"""
 
 import pandas as pd
 import numpy as np
