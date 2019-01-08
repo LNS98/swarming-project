@@ -479,3 +479,6 @@ def show_path_2D(coordinates, clear = True):
             plt.clf()
 
     return None
+
+
+average_noise_allignment()
