@@ -1,5 +1,6 @@
-
-# get lots of particles on the thing and make them allign
+"""
+Vicsek Model with alignment graph with respect to time step printed.
+"""
 
 import numpy as np
 import matplotlib.pyplot as plt
