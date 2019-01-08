@@ -1,5 +1,5 @@
 """
-Program that inserts lots of particles in box and makes them allign
+Program that inserts lots of particles in box
 """
 
 import numpy as np
@@ -11,7 +11,7 @@ import random
 L = 15     # size of the box
 delta_t = 1     # time increment
 dimensions = 2   # dimensions
-N = 5    # number of particles
+N = 20    # number of particles
 
 def main():
     """
@@ -28,13 +28,6 @@ def main():
     pos_over_t.append(locations)
     vel_over_t.append(velocities)
 
-    # update position of each particle in the box
-    for i in range(100):
-        # find the new velocity and locations and append them to __over_t
-        locations, velocities = update(locations, velocities)
-
-        pos_over_t.append(locations)
-        vel_over_t.append(velocities)
 
     if dimensions == 2:
         # show paths in 2-D
