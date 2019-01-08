@@ -1,5 +1,8 @@
-
-# get lots of particles on the thing and make them allign
+"""
+This program calculates the averages (including the previously calculated)
+of alignment for each noise value 
+producing a more accurate phase transition value. 
+"""
 
 import time
 import numpy as np
