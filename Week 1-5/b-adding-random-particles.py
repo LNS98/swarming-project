@@ -1,4 +1,6 @@
-# get lots of particles on the thing and make them allign
+"""
+Program that inserts lots of particles in box and makes them allign
+"""
 
 import numpy as np
 import matplotlib.pyplot as plt
