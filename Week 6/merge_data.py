@@ -1,3 +1,7 @@
+"""
+This is a program to merge the data received from both computers when running the code for noise vs alignment
+"""
+
 import matplotlib.pyplot as plt
 import pandas as pd
 
