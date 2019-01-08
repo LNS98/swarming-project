@@ -1,5 +1,6 @@
-# This file contains a program which will update velocity according to neighbours' force
-# Noise is still angular only
+"""
+This is an unfinished program of the incorporation of alignment and repulsive force.
+"""
 
 
 import numpy as np
