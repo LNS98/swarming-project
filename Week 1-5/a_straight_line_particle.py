@@ -1,5 +1,5 @@
 """
-Program which gets a particle to go in a straight line
+Program with several functions producing random motion of a single particle and a particle in a straight line. 
 """
 
 import pandas as pd
