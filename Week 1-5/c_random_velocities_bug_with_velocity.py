@@ -1,4 +1,8 @@
-# get lots of particles on the thing and make them allign
+"""
+Get lots of particles on the thing and make them allign.
+However, code is buggy and the particles produces random walks 
+so the alignment function needs to be altered. 
+"""
 
 import numpy as np
 import matplotlib.pyplot as plt
