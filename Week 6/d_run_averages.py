@@ -1,7 +1,7 @@
 """
 This program calculates the averages (including the previously calculated)
 of alignment for each noise value 
-producing a more accurate phase transition value. 
+producing a more accurate phase transition value. Also writes the values to a file. 
 """
 
 import time
