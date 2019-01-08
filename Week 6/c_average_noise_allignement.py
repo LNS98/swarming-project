@@ -1,5 +1,6 @@
 """
-Vicsek Model with alignment vs noise graph produced - highlighting the phase transition between the two states
+This program calculates the averages
+of alignment for each noise value.
 """
 
 import numpy as np
