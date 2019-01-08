@@ -1,5 +1,6 @@
-
-# get lots of particles on the thing and make them allign
+"""
+Vicsek Model with alignment vs noise graph produced - highlighting the phase transition between the two states. 
+"""
 
 import numpy as np
 import matplotlib.pyplot as plt
