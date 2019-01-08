@@ -1,5 +1,6 @@
-
-# get lots of particles on the thing and make them allign
+"""
+Correct Vicsek model with a printed starting alignment and end alignment for the agents.
+"""
 
 import numpy as np
 import matplotlib.pyplot as plt
