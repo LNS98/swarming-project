@@ -15,9 +15,12 @@ delta_t = 1     # time increment
 v_mag = 0.03      # total magnitude of each particle velocity
 dimensions = 2   # dimensions
 N = 100 # number of particles
-r = 0.5  #radius
-U = 100    # number of updates
+r = 0.5   # radius within alignment
+r_c = 0.25 # radius within repulsion
+U = 500    # number of updates
 noise = 0 # magnitude of varied noise
+alpha = 0 # magnitude for the alignment stregnth
+beta  = 1 # magnitude for the repulsive stregnth
 time_pause = 0.001 # time pause for interactive graph
 
 def main():
@@ -60,7 +63,6 @@ def main():
 
         # add new positions in array over time
         pos_over_t.append(positions)
-
 
         # append count to time array to keep track of timestep
         time.append(i)
@@ -184,17 +186,17 @@ def update_vel(positions, velocities):
 #        print("\nparticle in question: {}".format(positions[particle]))
 
         # find all the close particles
-        close_particles_vel = particles_in_sq(positions[particle], positions, velocities)
+        close_particles = particles_in_sq(positions[particle], positions, velocities)
 
 #        print("positons of particles: {} ".format(positions))
-#        print("velocities of particles: {} ".format(velocities))
+        # print("velocities of particles: {} ".format(velocities))
 
 #        print("velocities of close particles: {}".format(close_particles_vel))
         #update velocity of each particle
         #function already loops through dimentions
-        new_vel = new_vel_of_particle(velocities[particle], close_particles_vel)
+        new_vel = new_vel_of_particle(positions[particle], velocities[particle], close_particles)
 
-#        print("new particle velocity: {}".format(new_vel))
+        # print("new particle velocity: {}".format(new_vel))
 
         #new velocity arrays
         new_velocities.append(new_vel)
@@ -202,12 +204,14 @@ def update_vel(positions, velocities):
     #returns new velocities of all particles
     return new_velocities
 
-def new_vel_of_particle(velocity, close_particles_velocities):
+# alignment force
+# repulsive force
+
+def alingment_force(velocity, close_particles_velocities):
     """
-    Computes the average velocity in each dimension and outputs the average of this
-    in each dimension.
+    Computes the alignment force as per the viscek model. Calculating the
+    average velocity.
     """
-    global dimensions
 
     # list containing updated velocity Vx, Vy, Vz
     new_vel = []
@@ -222,39 +226,91 @@ def new_vel_of_particle(velocity, close_particles_velocities):
             # add the value of the velocity to previous
             new_vi += velocity[i]
 
-        # divide by how many particles to get mean
-        average_vi = (new_vi) / len(close_particles_velocities)
-
         # place value of new_vi in the new vel array
-        new_vel.append(average_vi)
-
-    # get the new direction by applying pheta = arctan(<x> / <y>)
-    if new_vel[0] == 0:
-        # if y = 0 then make it go 90 deg
-        angle = math.pi / 4 + random.uniform(- noise / 2, noise / 2)
-    else:
-        # get the new direction
-        angle = math.atan2(new_vel[1], new_vel[0]) + random.uniform(- noise / 2, noise / 2)
-
-    # convert direction to x, y coordinates.
-    new_vel[0], new_vel[1] = angle_to_xy(angle)
+        new_vel.append(new_vi)
 
     return new_vel
 
-def particles_in_sq(chosen_particle, positions, velocities):
+def repulsive_force(position, velocity, close_particles_positions):
     """
-    Checks and records the particles which are within a square of lengt r.
+    Computes the repulsive force as per the chate model (2008). Calculating the
+    force vector.
     """
 
-    # array with all indecies of all particles within range
+    # list containg new force
+    new_for = []
+    # for each dimension
+    for i in range(dimensions):
+        # new force = 0
+        new_fi = 0
+
+        # for each particle in close particles
+        for close_position in close_particles_positions:
+            # if it is the same particle skip
+            if close_position == position:
+                # keep random velocity or go in the same direction
+                new_fi += velocity[i]
+                continue
+
+            # calcualte force in ith dimension
+            fi = force_function(position, close_position)[i]
+            # add this to previous force
+            new_fi += fi
+
+        # append in list containing forces
+        new_for.append(new_fi)
+
+    return new_for
+
+def new_vel_of_particle(position, velocity, close_particles):
+    """
+    Computes the average velocity in each dimension and outputs the average of this
+    in each dimension.
+    """
+    global dimensions
+
+    # call alignment and repulsive force
+    al_force = alingment_force(velocity, close_particles[0])
+    re_force = repulsive_force(position, velocity, close_particles[1])
+
+#    print("total 'alignment': {}".format(al_force))
+#    print("total 'repulsion': {}".format(re_force))
+
+    # add the with constants
+    tot_for = np.add(np.dot(alpha, al_force), np.dot(beta, re_force))
+
+
+    # get the new direction by applying pheta = arctan(<x> / <y>)
+    if tot_for[0] == 0:
+        # if y = 0 then make it go 90 deg
+        angle = math.pi / 2 + random.uniform(- noise / 2, noise / 2)
+    else:
+        # get the new direction
+        angle = math.atan2(tot_for[1], tot_for[0]) + random.uniform(- noise / 2, noise / 2)
+
+    # convert direction to x, y coordinates.
+    tot_for[0], tot_for[1] = angle_to_xy(angle)
+
+    return tot_for
+
+def particles_in_sq(chosen_particle, positions, velocities):
+    """
+    Checks and records the particles which are within radius r.
+    Returns the veloicities and positions of those particles that
+    are within radius r.
+    """
+
+    # array with all indecies of all particles within range for velocities
     velocities_within_r = []
+
+    # array with all indecies of all particles within range for positions
+    positions_within_r = []
 
     # check over all particles in positions
     for index in range(N):
         # variable used to aid if its in radius
         in_size = True
 
-#        print("particles being compared: {} {}".format(chosen_particle, positions[index]))
         # check if it is smaller than the radius in all
         for i in range(dimensions):
 
@@ -266,16 +322,43 @@ def particles_in_sq(chosen_particle, positions, velocities):
 
             # if the size is over then break out of loop as it won't be in radius
             if distance > r:
-#                print("particle distance and 'r' (inside sq function): {} and {}".format(distance, r))
                 in_size = False
                 break
-        #If it is within square add velocity to all particles within r
+
+        # If it is within radius, add velocity to all velociites within r
         if in_size == True:
-            # get the index of the particle
+            # get the index of the particle for velocity
             velocities_within_r.append(velocities[index])
 
+            # get the index of the particle for position
+            # and add position to all positions within r
+            positions_within_r.append(positions[index])
 
-    return velocities_within_r
+
+    return velocities_within_r, positions_within_r
+
+def force_function(i, j):
+    """
+    calculates the force used in the repulsive_force function.
+    """
+    # calculate the distance between the points
+    distance_x = j[0] - i[0]
+    distance_y = j[1] - i[1]
+
+    # calcualte the magnitude of the distance between the points
+    distance = (distance_x ** 2 + distance_y ** 2) ** (1/2)
+
+    # magnitude of force
+    magnitude = -1 /(1 + math.exp(distance/ r_c))
+    #print(magnitude)
+
+    # get the x direction of the force
+    F_x = (magnitude * distance_x) / distance
+
+    # get the y direction of the force
+    F_y = (magnitude * distance_y) / distance
+
+    return [F_x, F_y]
 
 # --------------------------  Results Functions ---------------------------
 
@@ -412,8 +495,20 @@ def test_in_sq():
     plt.axis([0, L, 0, L])
     plt.show()
 
+def help():
+    """
+    Funciton used for different reasons.
+    """
+    a = [1, 2, 3]
+    b = [2, 3, 5]
+
+    c = np.add(a, b)
+    print(c)
+
+    return None
 
 # run algorithm
 start = time.time()
 main()
+# help()
 print("------------- Time Taken: {} -------------".format(time.time() - start))
