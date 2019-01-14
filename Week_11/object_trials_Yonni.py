@@ -1,5 +1,5 @@
 """
-Vicsek Model with alignment graph with respect to time step printed
+Trials to insert objects
 """
 
 import numpy as np
@@ -12,9 +12,9 @@ import time
 # global variables used in the program
 L = 32  # size of the box
 delta_t = 1     # time increment
-v_mag = 0.05      # total magnitude of each particle velocity
+v_mag = 0.5      # total magnitude of each particle velocity
 dimensions = 2   # dimensions
-N = 128 # number of particles
+N = 30 # number of particles
 r = 1   # radius within alignment
 r_c = 0.1 # radius within repulsion
 U = 500    # number of updates
@@ -23,10 +23,20 @@ alpha = 1 # magnitude for the alignment stregnth
 beta  = 1 # magnitude for the repulsive stregnth
 time_pause = 0.1 # time pause for interactive graph
 
+# object variables
+size = 50 # size of square object
+space = 1 # space between particles
+
+
 def main():
     """
     Execution of main program.
     """
+    #----------------------------------------#
+    # objects
+    object_pos = pop_box_object()
+    #----------------------------------------#
+
     # all positions over time
     pos_over_t = []
     # all velocities over time
@@ -78,19 +88,19 @@ def main():
 
     if dimensions == 2:
         # show paths in 2-D
-        show_path_2D(pos_over_t, clear = True)
+        show_path_2D(pos_over_t, object_pos, clear = True)
 
     return 0
 
 
 # --------------------------  System Functions ---------------------------
 
+# populates box with particles
 def pop_box():
     """
     Funciton which populates the box with N particles in random
     locations and random velocities inside the box.
     """
-    global L, dimensions, N
 
     # initial positions of created particles
     init_positions = []
@@ -123,6 +133,60 @@ def pop_box():
 
     #returns the initial positions and velocities of all particles
     return init_positions, init_velocities
+
+# populates box with an object
+def pop_box_object():
+
+    # array containing positions of particles in object
+    init_all_positions = []
+
+    # x, y coordinates of bottom left hand side particle
+    # this particle will initialise all other particles in object
+    init_left = [random.uniform(0, L), random.uniform(0, L)]
+
+    # dummy variable for x
+    init_x = init_left[0]
+
+    # generate the other particles depending on the random position
+    # of the init particle
+    for x in range(size):
+
+        # dummy variable for y
+        init_y = init_left[1]
+
+        # loop for y coordinates
+        for y in range(size):
+
+            # empty array with x y position of each particle, we append
+            # xy to this array which is afterwards added to all positions array
+            pos = []
+            pos.append(init_x)
+            pos.append(init_y)
+            init_all_positions.append(pos)
+
+            # increment to next particle in y
+            init_y = init_y + space
+
+        # increment to next particle in x
+        init_x = init_x + space
+
+    return init_all_positions
+
+# calculates center of mass
+def c_of_mass(o_particle_positions, mass):
+
+    sum = 0
+
+    for position in o_particle_positions:
+        print(position[0])
+        print(len(o_particle_positions))
+        d = np.sqrt(position[0] ** 2 + position[1] **2)
+        dm = d * mass
+        sum += dm
+
+    com = sum/(mass*len(o_particle_positions))
+    print(com)
+    return com
 
 def periodic_boundaries(position):
     """
@@ -205,8 +269,6 @@ def update_vel(positions, velocities):
     return new_velocities
 
 # alignment force
-# repulsive force
-
 def alingment_force(velocity, close_particles_velocities):
     """
     Computes the alignment force as per the viscek model. Calculating the
@@ -231,6 +293,7 @@ def alingment_force(velocity, close_particles_velocities):
 
     return new_vel
 
+# repulsive force
 def repulsive_force(position, velocity, close_particles_positions):
     """
     Computes the repulsive force as per the chate model (2008). Calculating the
@@ -262,6 +325,7 @@ def repulsive_force(position, velocity, close_particles_positions):
 
     return new_for
 
+# others
 def new_vel_of_particle(position, velocity, close_particles):
     """
     Computes the average velocity in each dimension and outputs the average of this
@@ -389,7 +453,7 @@ def allignment(velocities):
 
 # ------------------------   Visualise Functions --------------------------
 
-def show_path_2D(coordinates, clear = True):
+def show_path_2D(coordinates, object, clear = True):
     """
     Function which takes in the coordinates as described in straight_particle and
     plots the result on a scatter graph.
@@ -409,12 +473,15 @@ def show_path_2D(coordinates, clear = True):
 
         # loop over each particle and colour
         for particle, c in zip(time_step, colours):
-            # plot x, y poistion of particle in a given colour and set axis to size of box
-            plt.scatter(particle[0], particle[1], s = 3, color = c)
-            # plt.plot([particle[0] - r, particle[0] + r, particle[0] + r, particle[0] - r, particle[0] - r],
-            #          [particle[1] - r, particle[1] - r, particle[1] + r, particle[1] + r, particle[1] - r],
-            #          color = c)
+
+            # plot x, y position of particle in a given colour and set axis to size of box
+            plt.scatter(particle[0], particle[1], s = 10, color = c)
             plt.axis([0, L, 0, L])
+
+            # also plot object on the same graph
+            xs = [x[0] for x in object]
+            ys = [y[1] for y in object]
+            plt.scatter(xs, ys)
 
         # show graph
         plt.show()
@@ -509,6 +576,6 @@ def help():
 
 # run algorithm
 start = time.time()
-main()
-# help()
+# main()
+c_of_mass([[-1,1], [1,-1], [1, 1], [-1, -1]], 1)
 print("------------- Time Taken: {} -------------".format(time.time() - start))
