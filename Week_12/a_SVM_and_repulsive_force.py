@@ -10,17 +10,17 @@ import random
 import time
 
 # global variables used in the program
-L = 32  # size of the box
+L = 10  # size of the box
 delta_t = 1     # time increment
-v_mag = 0.05      # total magnitude of each particle velocity
+v_mag = 0.3      # total magnitude of each particle velocity
 dimensions = 2   # dimensions
-N = 128 # number of particles
+N = 2 # number of particles
 r = 1   # radius within alignment
 r_c = 0.1 # radius within repulsion
 U = 500    # number of updates
-noise = 0 # magnitude of varied noise
+noise = 5 # magnitude of varied noise
 alpha = 1 # magnitude for the alignment stregnth
-beta  = 1 # magnitude for the repulsive stregnth
+beta  = 0 # magnitude for the repulsive stregnth
 time_pause = 0.1 # time pause for interactive graph
 
 def main():
