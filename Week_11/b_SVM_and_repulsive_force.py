@@ -12,11 +12,11 @@ import time
 # global variables used in the program
 L = 10  # size of the box
 delta_t = 1     # time increment
-v_mag = 0.03      # total magnitude of each particle velocity
+v_mag = 0.1      # total magnitude of each particle velocity
 dimensions = 2   # dimensions
 N = 100 # number of particles
 r = 0.5   # radius within alignment
-r_c = 0.25 # radius within repulsion
+r_c = 1 # radius within repulsion
 U = 500    # number of updates
 noise = 0 # magnitude of varied noise
 alpha = 0 # magnitude for the alignment stregnth
@@ -204,9 +204,6 @@ def update_vel(positions, velocities):
     #returns new velocities of all particles
     return new_velocities
 
-# alignment force
-# repulsive force
-
 def alingment_force(velocity, close_particles_velocities):
     """
     Computes the alignment force as per the viscek model. Calculating the
@@ -360,6 +357,17 @@ def force_function(i, j):
 
     return [F_x, F_y]
 
+def angle_to_xy(angle):
+        """
+        Takes an angle in radians as input as returns x and y poistion for the corresponding angle
+        using r as v_mag, a predifined value which is the magnitude of the velocity.
+        """
+        # get x using x = cos(angle) and y = sin(angle)
+        x = v_mag * math.cos(angle)
+        y = v_mag * math.sin(angle)
+
+        return x, y
+
 # --------------------------  Results Functions ---------------------------
 
 def allignment(velocities):
@@ -437,17 +445,6 @@ def show_allignment_plot(time, allignment):
     return None
 
 # ---------------------------  Test Functions ----------------------------
-def angle_to_xy(angle):
-    """
-    Takes an angle in radians as input as returns x and y poistion for the corresponding angle
-    using r as v_mag, a predifined value which is the magnitude of the velocity.
-    """
-    # get x using x = cos(angle) and y = sin(angle)
-    x = v_mag * math.cos(angle)
-    y = v_mag * math.sin(angle)
-
-    return x, y
-
 def test_angle_form():
     """
     Test formula for angle_to_xy.
