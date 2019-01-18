@@ -11,14 +11,14 @@ import matplotlib.cm as cm
 import time
 
 # constants used in the program
-L = 32  # size of the box
-N = 128  # number of particles
+L = 3.1  # size of the box
+N = 40  # number of particles
 M = 0   # number of objects
 v_mag = 0.05      # total magnitude of each particle velocity
 delta_t = 1     # time increment
 mass_par = 1 # masss of the particles
 mass_object = 100 # masss of the particles
-noise = 1
+noise = 2.5  # noise added to the acceleration
 
 # distance metrics in the code
 r = 1.0   # radius of allignment
@@ -41,6 +41,19 @@ time_pause = 0.001 # time pause for interactive graph
 
 def main():
 
+    # make 1 complete run of the system
+    ali_end = one_run(plot = True)
+    print("alignment: {}".format(ali_end))
+
+    return 0
+
+# ----------------------- Whole system Functions ---------------------------------
+
+def one_run(plot = False):
+    """
+    One simulation of a total run by the system.
+    """
+
     # fill up a box with particles and objects
     positions, velocities, accelerations = pop_box()
     positions_obj, velocities_obj, accelerations_obj = objects()
@@ -52,7 +65,6 @@ def main():
     vel_obj_over_t = [velocities_obj]
 
     align_start = allignment(velocities)
-    print("Alingment at start: {}".format(align_start))
 
     # update the position for 10 times
     for i in range(U):
@@ -71,12 +83,12 @@ def main():
         vel_obj_over_t.append(velocities_obj)
 
     align_end = allignment(velocities)
-    print("Alingment at end: {}".format(align_end))
 
-    # show the path of the particles
-    show_path_2D(U - 20, U, pos_part_over_t, pos_obj_over_t, clear = True)
+    # plot the movment of the particles if plot is set to true
+    if plot == True:
+        show_path_2D(0, U, pos_part_over_t, pos_obj_over_t, clear = True)
 
-    return 0
+    return align_end
 
 # ----------------------- System Functions ---------------------------------
 
@@ -198,13 +210,16 @@ def update_velocity(velocity, acceleration):
     # loop through the dimensions in position
     for i in range(dimensions):
         # update the velocity first
-        v_i = velocity[i] + acceleration[i] * delta_t
+        v_i = velocity[i] + acceleration[i] * delta_t # + noise
 
         # append to the new_position and velocity list this position/velocity
         new_vel.append(v_i)
 
     # rescale the magnitude of the speed
     new_vel = rescale(v_mag, new_vel)
+
+    # add the noise
+    new_vel = error_force(new_vel)
 
     return new_vel
 
@@ -229,9 +244,6 @@ def update_acceleration(position_particle, velocity_particle, position_particles
 
     new_acceleration = (alpha * force_particles + beta * force_object +
     gamma * allignment_force(position_particle, velocity_particle, position_particles, velocity_particles)) / mass_par
-
-    # add the noise term
-    new_acceleration = error_force(new_acceleration)
 
     return new_acceleration
 
@@ -418,25 +430,26 @@ def chate_rep_att_force(i, j):
 
     return np.array([F_x, F_y])
 
-def error_force(incoming_acceleration):
+def error_force(incoming_velocity):
     """
-    Adds a random perturbation to the angle of the incoming acceleration and
+    Adds a random perturbation to the angle of the incoming velocity and
     returns the new randomly affected acceleration.
     """
-    # get the magnitude of the acceleration
-    incoming_acceleration = np.array(incoming_acceleration)
-    mag = np.sqrt(incoming_acceleration.dot(incoming_acceleration))
+    # get the magnitude of the velocity
+    incoming_velocity = np.array(incoming_velocity)
+    mag = np.sqrt(incoming_velocity.dot(incoming_velocity))
 
-    # change the acceleration term to an angle
-    acc_angle = np.arctan2(incoming_acceleration[1], incoming_acceleration[0])
+    # change the velocity term to an angle
+    acc_angle = np.arctan2(incoming_velocity[1], incoming_velocity[0])
 
     # add a random perturbation based on 'noise'
     acc_angle += random.uniform(- noise / 2, noise / 2)
 
     # change back to vector form
-    new_acc = angle_to_xy(mag, acc_angle)
+    new_vel = angle_to_xy(mag, acc_angle)
 
-    return new_acc
+    return new_vel
+
 # ----------------------- Reuslts Functions ------------------------------
 
 def allignment(velocities):
@@ -515,6 +528,22 @@ def show_allignment_plot(time, allignment):
     plt.show()
 
     return None
+
+def phase_transition(order_parameter_values, control_parameter_values):
+    """
+    Plots a potential phase diagram between an order parameter, such as alignment
+    against a control parameter such as nosie.
+    """
+    # plot the order parameter on the y axis and the control on the x
+    plt.scatter(control_parameter_values, order_parameter_values,
+                s = 2, label = "N = {}, L = {}".format(N, L))
+    plt.xlabel("nosie") # these should be changed for other parameters
+    plt.ylabel("allignment") # these should be changed for other parameters
+    plt.legend()
+    plt.show()
+
+    return None
+
 
 # ----------------------- Help Functions ------------------------------
 

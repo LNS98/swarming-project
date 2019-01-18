@@ -6,19 +6,20 @@ Program built to investiagte coding up the physics of object colliding.
 import numpy as np
 import random
 import math
+import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import time
 
 # constants used in the program
-L = 32  # size of the box
-N = 128  # number of particles
+L = 5  # size of the box
+N = 100  # number of particles
 M = 0   # number of objects
 v_mag = 0.05      # total magnitude of each particle velocity
 delta_t = 1     # time increment
 mass_par = 1 # masss of the particles
 mass_object = 100 # masss of the particles
-noise = 1
+noise = 2.5  # noise added to the acceleration
 
 # distance metrics in the code
 r = 1.0   # radius of allignment
@@ -32,7 +33,7 @@ alpha = 0 # stregnth of repulsive force due to the particles
 beta = 0 # stregnth of the force due to the objects
 gamma = 1 # stregnth of allignment
 
-U = 500   # number of updates
+U = 250   # number of updates
 dimensions = 2   # dimensions
 time_pause = 0.001 # time pause for interactive graph
 
@@ -40,6 +41,18 @@ time_pause = 0.001 # time pause for interactive graph
 
 
 def main():
+
+    # run 3 averages of the noise against allignment
+    average_noise_allignment(15)
+
+    return 0
+
+# ----------------------- Whole system Functions ---------------------------------
+
+def one_run(plot = False):
+    """
+    One simulation of a total run by the system.
+    """
 
     # fill up a box with particles and objects
     positions, velocities, accelerations = pop_box()
@@ -52,7 +65,6 @@ def main():
     vel_obj_over_t = [velocities_obj]
 
     align_start = allignment(velocities)
-    print("Alingment at start: {}".format(align_start))
 
     # update the position for 10 times
     for i in range(U):
@@ -71,12 +83,150 @@ def main():
         vel_obj_over_t.append(velocities_obj)
 
     align_end = allignment(velocities)
-    print("Alingment at end: {}".format(align_end))
 
-    # show the path of the particles
-    show_path_2D(U - 20, U, pos_part_over_t, pos_obj_over_t, clear = True)
+    # plot the movment of the particles if plot is set to true
+    if plot == True:
+        show_path_2D(U - 20, U, pos_part_over_t, pos_obj_over_t, clear = True)
 
-    return 0
+    return align_end
+
+def noise_variation():
+    """
+    calcualtes the allignment of the systems for different values of the noise.
+    """
+
+    # create a list containg the values of noise tested
+    noise_list = list(np.linspace(0, 5, num = 20))
+
+    # L_list = [3.1, 5, 10, 31.6, 50]
+    # N = [40, 100, 400, 4000, 10000]
+
+    ali_list = []
+
+    # for each value in list run main funciton
+    for no in noise_list:
+        # change the noise to new value of noise for the global variable noise
+        global noise
+        noise = no
+        # get the allignnment from the main funciton
+        all = one_run()
+
+        # append this to the all_list
+        ali_list.append(all)
+
+    return noise_list, ali_list
+
+def average_noise_allignment(n_times):
+    """
+    add together all values for allignment and divide by the number of repeats
+    """
+
+    # list with values of nosie, L and N
+    noise_list = list(np.linspace(0, 5, num = 20))
+
+    all_allign = []
+
+    # for each repeat, add new allignment values to old allignment values
+    for repeat in range(n_times):
+
+        # generate new allignment values
+        all_list = noise_variation()[1]
+
+        # add these new allignment values to the all_allign list
+        all_allign.append(all_list)
+
+    # read in data from file if file exists
+    try:
+        # read in csv as dataframe
+        df = pd.read_csv("./averages/N_{}.csv".format(N))
+
+        # convert df to list and get the number of counts for the average
+        prev_ave = df["averages"].values.tolist()
+        current_averages = int(df["number of averages"].iloc[0])
+
+        # append this to all list
+        all_allign.append(prev_ave)
+
+    except IOError as e:
+        # set the current averages to the number of repeats
+        current_averages = n_times
+
+    # empty array of average allignment
+    average_allignment = []
+
+    # loop over all the items in the list all_list
+    for i in range(len(all_list)):
+        # initialise sum which will be average
+        sum = 0
+
+        # loop over each repeated list from the averaginf process
+        for element in range(n_times):
+            # sum list to then get average
+            sum += all_allign[element][i]
+
+        # if file has been read
+        if len(all_allign) == n_times + 1:
+            # get the old value for the avearge correctly weighted
+            old_ave = all_allign[n_times][i] * current_averages
+
+            # last element multiply by number of times from previous counts
+            sum += old_ave
+
+            # divide by number of repeats to get average
+            sum = sum / (n_times + current_averages)
+        else:
+            # don't  account for extra counts from file
+            sum = sum / n_times
+
+        # append to the lsit containing the averages
+        average_allignment.append(sum)
+
+    # convert the average allignment to a df and the noises as well
+    d = {"noise": noise_list, "averages": average_allignment, "number of averages": (current_averages + n_times)}
+    df_w = pd.DataFrame(data = d)
+
+    # write it to csv file
+    df_w.to_csv("./averages/N_{}.csv".format(N), index = False)
+
+    return None
+
+def run_to_get_averages(n_times):
+    """
+    Run this function to get the averages for each of the different setups
+    (defined below) for 'n_times' repeats plotted on the same graph.
+    """
+    global N, L, U
+    # initalise the differnt values of L and N that are needed
+    # L_list = [3.1, 5, 10, 31.6, 50]
+    # N_list = [40, 100, 400, 4000, 10000]
+    # U_best = [80, 200, 300, 800, 1500]
+
+    L_list = [3.1, 5]
+    N_list = [40, 100]
+    U_best = [80, 200]
+
+    # loop over the values in the lists above
+    for i in range(len(L_list)):
+        # change the values of L and N to the ones from the list
+        N = N_list[i]
+        L = L_list[i]
+        U = U_best[i]
+
+        # check the time of the program
+        start = time.time()
+
+        # run the average function n_times
+        average_noise_allignment(n_times)
+
+        # time after the function
+        end = time.time()
+        print("\n-------- time of program: {} -------------\n".format(end - start))
+
+    #show the scatter plot
+    #plt.show()
+
+    return None
+
 
 # ----------------------- System Functions ---------------------------------
 
@@ -198,13 +348,16 @@ def update_velocity(velocity, acceleration):
     # loop through the dimensions in position
     for i in range(dimensions):
         # update the velocity first
-        v_i = velocity[i] + acceleration[i] * delta_t
+        v_i = velocity[i] + acceleration[i] * delta_t # + noise
 
         # append to the new_position and velocity list this position/velocity
         new_vel.append(v_i)
 
     # rescale the magnitude of the speed
     new_vel = rescale(v_mag, new_vel)
+
+    # add the noise
+    new_vel = error_force(new_vel)
 
     return new_vel
 
@@ -229,9 +382,6 @@ def update_acceleration(position_particle, velocity_particle, position_particles
 
     new_acceleration = (alpha * force_particles + beta * force_object +
     gamma * allignment_force(position_particle, velocity_particle, position_particles, velocity_particles)) / mass_par
-
-    # add the noise term
-    new_acceleration = error_force(new_acceleration)
 
     return new_acceleration
 
@@ -418,25 +568,26 @@ def chate_rep_att_force(i, j):
 
     return np.array([F_x, F_y])
 
-def error_force(incoming_acceleration):
+def error_force(incoming_velocity):
     """
-    Adds a random perturbation to the angle of the incoming acceleration and
+    Adds a random perturbation to the angle of the incoming velocity and
     returns the new randomly affected acceleration.
     """
-    # get the magnitude of the acceleration
-    incoming_acceleration = np.array(incoming_acceleration)
-    mag = np.sqrt(incoming_acceleration.dot(incoming_acceleration))
+    # get the magnitude of the velocity
+    incoming_velocity = np.array(incoming_velocity)
+    mag = np.sqrt(incoming_velocity.dot(incoming_velocity))
 
-    # change the acceleration term to an angle
-    acc_angle = np.arctan2(incoming_acceleration[1], incoming_acceleration[0])
+    # change the velocity term to an angle
+    acc_angle = np.arctan2(incoming_velocity[1], incoming_velocity[0])
 
     # add a random perturbation based on 'noise'
     acc_angle += random.uniform(- noise / 2, noise / 2)
 
     # change back to vector form
-    new_acc = angle_to_xy(mag, acc_angle)
+    new_vel = angle_to_xy(mag, acc_angle)
 
-    return new_acc
+    return new_vel
+
 # ----------------------- Reuslts Functions ------------------------------
 
 def allignment(velocities):
@@ -512,6 +663,21 @@ def show_allignment_plot(time, allignment):
     plt.plot(time, allignment, linewidth=1, marker=".", markersize=3)
     plt.xlabel("Time")
     plt.ylabel("Allignment value")
+    plt.show()
+
+    return None
+
+def phase_transition(order_parameter_values, control_parameter_values):
+    """
+    Plots a potential phase diagram between an order parameter, such as alignment
+    against a control parameter such as nosie.
+    """
+    # plot the order parameter on the y axis and the control on the x
+    plt.scatter(control_parameter_values, order_parameter_values,
+                s = 2, label = "N = {}, L = {}".format(N, L))
+    plt.xlabel("nosie") # these should be changed for other parameters
+    plt.ylabel("allignment") # these should be changed for other parameters
+    plt.legend()
     plt.show()
 
     return None

@@ -1,7 +1,7 @@
 """
 This program calculates the averages (including the previously calculated)
-of alignment for each noise value 
-producing a more accurate phase transition value. Also writes the values to a file. 
+of alignment for each noise value
+producing a more accurate phase transition value. Also writes the values to a file.
 """
 
 import time
@@ -73,7 +73,6 @@ def angle_to_xy(angle):
 
     return x, y
 
-
 def test_angle_form():
     """
     Test formula for angle_to_xy.
@@ -91,7 +90,6 @@ def test_angle_form():
         print("Angle: {} \n x: {} \n y: {}".format(angle, x, y))
 
     return None
-
 
 def pop_box():
     """
@@ -133,7 +131,6 @@ def pop_box():
     #returns the initial positions and velocities of all particles
     return init_positions, init_velocities
 
-
 def update_pos(positions, velocities):
     """
     Updates locations
@@ -159,7 +156,6 @@ def update_pos(positions, velocities):
         new_positions.append(new_particle_position)
 
     return new_positions
-
 
 def update_vel(positions, velocities):
     """
@@ -193,7 +189,6 @@ def update_vel(positions, velocities):
 
     #returns new velocities of all particles
     return new_velocities
-
 
 def new_vel_of_particle(velocity, close_particles_velocities):
     """
@@ -233,7 +228,6 @@ def new_vel_of_particle(velocity, close_particles_velocities):
     new_vel[0], new_vel[1] = angle_to_xy(angle)
 
     return new_vel
-
 
 def particles_in_sq(chosen_particle, positions, velocities):
     """
@@ -276,7 +270,6 @@ def particles_in_sq(chosen_particle, positions, velocities):
 
     return velocities_within_r
 
-
 def test_in_sq():
     """
     Test function for particles_in_radius.
@@ -306,7 +299,6 @@ def test_in_sq():
     plt.axis([0, L, 0, L])
     plt.show()
 
-
 def periodic_boundaries(position):
     """
     If particle is over the limit of the box run this function and it will return
@@ -325,7 +317,6 @@ def periodic_boundaries(position):
     # otherwise just return the position
     else:
         return position
-
 
 def allignment(velocities):
     """
@@ -351,7 +342,6 @@ def allignment(velocities):
     v_a = (1/(N * v_mag)) * (v_mag_tot)
 
     return v_a
-
 
 def show_allignment_plot(time, allignment):
 
