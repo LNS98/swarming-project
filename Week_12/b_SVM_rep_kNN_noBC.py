@@ -167,7 +167,7 @@ def update_pos_NN(positions, velocities):
             new_pos = positions[particle][i] + delta_t * velocities[particle][i]
 
             #check periodic boundary conditions
-            new_pos = periodic_boundaries(new_pos)
+            #new_pos = periodic_boundaries(new_pos)
 
             new_particle_position.append(new_pos)
 
@@ -298,7 +298,10 @@ def k_particles(chosen_particle, positions, velocities):
     # check over all particles in positions
     for index in range(N):
 
-        distance_x, distance_y = per_boun_distance(chosen_particle, positions[index])
+        # distance_x, distance_y = per_boun_distance(chosen_particle, positions[index])
+
+        distance_x = positions[index][0] - chosen_particle[0]
+        distance_y = positions[index][1] - chosen_particle[1]
 
         # distance from selected particle to particle with index
         d = np.sqrt(distance_x**2 + distance_y**2)
@@ -423,7 +426,7 @@ def show_path_2D(start, end, coordinates, clear = True):
             # plt.plot([particle[0] - r, particle[0] + r, particle[0] + r, particle[0] - r, particle[0] - r],
             #          [particle[1] - r, particle[1] - r, particle[1] + r, particle[1] + r, particle[1] - r],
             #          color = c)
-            plt.axis([0, L, 0, L])
+            # plt.axis([0, L, 0, L])
 
         # show graph
         plt.show()

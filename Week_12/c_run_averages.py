@@ -12,16 +12,23 @@ import math
 import random
 import pandas as pd
 
-#global variables used in the program
-L = 3.1    # size of the box
+# ---------- Global variables used in the program---------
+L = 10  # size of the box
 delta_t = 1     # time increment
-v_mag = 0.03      # total magnitude of each particle velocity
+v_mag = 0.3      # total magnitude of each particle velocity
 dimensions = 2   # dimensions
-N = 40  # number of particles
-r = 1  #radius
-U = 30    # number of updates
-time_pause = 0.001 # time pause for interactive graph
-noise = 0 # noise
+N = 400  # number of particles
+U = 10   # number of updates
+noise = 0 # magnitude of varied noise
+time_pause = 0.1 # time pause for interactive graph
+
+# Variables specifically for including repulsion force
+r_c = 1 # radius within repulsion
+alpha = 1 # magnitude for the alignment stregnth
+beta  = 0 # magnitude for the repulsive stregnth
+
+# Variables when including  nearest neighbour
+k = 7 # number of nearest neighbours that particle considers
 
 
 def main_noise():
@@ -46,13 +53,13 @@ def main_noise():
     for i in range(U):
 
         # update velocities dependant on previous positions
-        velocities = update_vel(positions, velocities)
+        velocities = update_vel_NN(positions, velocities)
 
         # add new velocities to array over time
         vel_over_t.append(velocities)
 
         # update positions dependant on previous velocities
-        positions = update_pos(velocities, positions)
+        positions = update_pos_NN(velocities, positions)
 
         # add new positions in array over time
         pos_over_t.append(positions)
@@ -62,34 +69,8 @@ def main_noise():
 
     return all
 
-def angle_to_xy(angle):
-    """
-    Takes an angle in radians as input as returns x and y poistion for the corresponding angle
-    using r as v_mag, a predifined value which is the magnitude of the velocity.
-    """
-    # get x using x = cos(angle) and y = sin(angle)
-    x = v_mag * math.cos(angle)
-    y = v_mag * math.sin(angle)
 
-    return x, y
-
-def test_angle_form():
-    """
-    Test formula for angle_to_xy.
-    """
-    # populate angles
-    angles = []
-    angle = - math.pi
-    for i in range(7):
-        angles.append(angle)
-        angle += 2 * math.pi / 4
-
-    # run function for angles
-    for angle in angles:
-        x, y = angle_to_xy(angle)
-        print("Angle: {} \n x: {} \n y: {}".format(angle, x, y))
-
-    return None
+# --------------------------  System Functions ---------------------------
 
 def pop_box():
     """
@@ -97,7 +78,6 @@ def pop_box():
     locations and random velocities inside the box.
     """
     global L, dimensions, N
-
 
     # initial positions of created particles
     init_positions = []
@@ -131,7 +111,29 @@ def pop_box():
     #returns the initial positions and velocities of all particles
     return init_positions, init_velocities
 
-def update_pos(positions, velocities):
+def periodic_boundaries(position):
+    """
+    If particle is over the limit of the box run this function and it will return
+    the correct position of the particle.
+    """
+    global L
+
+    # check if its under 0
+    if position < 0:
+        return position + L
+
+    # if its over L
+    elif position > L:
+        return position - L
+
+    # otherwise just return the position
+    else:
+        return position
+
+
+# ---------------  Update Functions for Nearest Neighbour Model ----------------
+
+def update_pos_NN(positions, velocities):
     """
     Updates locations
     """
@@ -157,11 +159,10 @@ def update_pos(positions, velocities):
 
     return new_positions
 
-def update_vel(positions, velocities):
+def update_vel_NN(positions, velocities):
     """
     Updates velocity
     """
-    global delta_t, dimensions, N
 
     #list will contain new velocities of all particles
     new_velocities = []
@@ -169,20 +170,12 @@ def update_vel(positions, velocities):
     #loop over each particle
     for particle in range(N):
 
-#        print("\nparticle in question: {}".format(positions[particle]))
+        # find k closest particles
+        close_particles = k_particles(positions[particle], positions, velocities)
 
-        # find all the close particles
-        close_particles_vel = particles_in_sq(positions[particle], positions, velocities)
-
-#        print("positons of particles: {} ".format(positions))
-#        print("velocities of particles: {} ".format(velocities))
-
-#        print("velocities of close particles: {}".format(close_particles_vel))
         #update velocity of each particle
         #function already loops through dimentions
-        new_vel = new_vel_of_particle(velocities[particle], close_particles_vel)
-
-#        print("new particle velocity: {}".format(new_vel))
+        new_vel = new_vel_of_particle_NN(positions[particle], velocities[particle], close_particles)
 
         #new velocity arrays
         new_velocities.append(new_vel)
@@ -190,12 +183,12 @@ def update_vel(positions, velocities):
     #returns new velocities of all particles
     return new_velocities
 
-def new_vel_of_particle(velocity, close_particles_velocities):
+# alignment force
+def alingment_force(velocity, close_particles_velocities):
     """
-    Computes the average velocity in each dimension and outputs the average of this
-    in each dimension.
+    Computes the alignment force as per the viscek model. Calculating the
+    average velocity.
     """
-    global dimensions
 
     # list containing updated velocity Vx, Vy, Vz
     new_vel = []
@@ -210,65 +203,185 @@ def new_vel_of_particle(velocity, close_particles_velocities):
             # add the value of the velocity to previous
             new_vi += velocity[i]
 
-        # divide by how many particles to get mean
-        average_vi = (new_vi) / len(close_particles_velocities)
-
         # place value of new_vi in the new vel array
-        new_vel.append(average_vi)
-
-    # get the new direction by applying pheta = arctan(<x> / <y>)
-    if new_vel[0] == 0:
-        # if y = 0 then make it go 90 deg
-        angle = math.pi / 4 + random.uniform(- noise / 2, noise / 2)
-    else:
-        # get the new direction
-        angle = math.atan2(new_vel[1], new_vel[0]) + random.uniform(- noise / 2, noise / 2)
-
-    # convert direction to x, y coordinates.
-    new_vel[0], new_vel[1] = angle_to_xy(angle)
+        new_vel.append(new_vi)
 
     return new_vel
 
-def particles_in_sq(chosen_particle, positions, velocities):
+# repulsive force
+def repulsive_force(position, velocity, close_particles_positions):
     """
-    Checks and records the particles which are within a square of lengt r.
+    Computes the repulsive force as per the chate model (2008). Calculating the
+    force vector.
     """
 
-    # array with all indices of all particles within range
-    velocities_within_r = []
+    # list containg new force
+    new_for = []
+    # for each dimension
+    for i in range(dimensions):
+        # new force = 0
+        new_fi = 0
 
-    # check for each particle
+        # for each particle in close particles
+        for close_position in close_particles_positions:
+            # if it is the same particle skip
+            if close_position == position:
+                # keep random velocity or go in the same direction
+                new_fi += velocity[i]
+                continue
+
+            # calcualte force in ith dimension
+            fi = force_function(position, close_position)[i]
+            # add this to previous force
+            new_fi += fi
+
+        # append in list containing forces
+        new_for.append(new_fi)
+
+    return new_for
+
+def force_function(i, j):
+    """
+    calculates the force used in the repulsive_force function.
+    """
+    # calculate the distance between the points
+    distance_x = j[0] - i[0]
+    distance_y = j[1] - i[1]
+
+    # calcualte the magnitude of the distance between the points
+    distance = (distance_x ** 2 + distance_y ** 2) ** (1/2)
+
+    # magnitude of force
+    magnitude = -1 /(1 + math.exp(distance/ r_c))
+    #print(magnitude)
+
+    # get the x direction of the force
+    F_x = (magnitude * distance_x) / distance
+
+    # get the y direction of the force
+    F_y = (magnitude * distance_y) / distance
+
+    return [F_x, F_y]
+
+# other functions needed for the update
+def k_particles(chosen_particle, positions, velocities):
+    """
+    Checks and records the k closest particles of chosen_particle.
+    Returns the velocities and positions of those k particles.
+    """
+
+
+    # array with all indecies of all k particles for positions
+    positions_k = []
+    velocities_k = []
+
+    # array of new distances considering boundary conditions
+    new_distances = []
+
+    # check over all particles in positions
     for index in range(N):
-        # variable used to aid if its in radius
-        in_size = True
 
-        # empty array of x and y distances between particle in question and neighbour
-        lenghts = []
+        distance_x, distance_y = per_boun_distance(chosen_particle, positions[index])
 
-        # loop checking f distance between particles in smaller than r
-        for i in range(dimensions):
+        # distance from selected particle to particle with index
+        d = np.sqrt(distance_x**2 + distance_y**2)
 
-            inside_distance = abs(chosen_particle[i] - positions[index][i])
+        # append this distance to array of distances
+        new_distances.append(d)
 
-            wrap_distance = L-inside_distance
+    # Now we need a sorting algorithm (merge)
+    for j in range(k+1):
+        low = min(new_distances)
 
-            # define side of triangle to find distance
-            lenghts.append(min(inside_distance, wrap_distance))
+        index_k = new_distances.index(low)
 
-        # define distance from chosen particle to neighbout particle index
-        distance = math.sqrt(lenghts[0]**2 + lenghts[1]**2)
+        # get the index of the particle for velocity
+        velocities_k.append(velocities[index_k])
 
-        # if the size is over then break out of loop as it won't be in radius
-        if distance > r:
-            in_size = False
+        # get the index of the particle for position
+        # and add position to all positions within r
+        positions_k.append(positions[index_k])
 
-        #If it is within radius add velocity to all particles within r
-        if in_size == True:
-            # get the index of the particle
-            velocities_within_r.append(velocities[index])
+        new_distances.pop(index_k)
+
+    return velocities_k, positions_k
+
+def per_boun_distance(i, j):
+    """
+    Calculates the minimum distance  between two particles in a box with periodic
+    boundries.
+    """
+    # calculate the minimum x distance
+    in_distance_x = j[0] - i[0]
+    out_distance_x = L - in_distance_x
+    distance_x = min(in_distance_x, out_distance_x)
 
 
-    return velocities_within_r
+    # calculate the minimum y distance
+    in_distance_y = j[1] - i[1]
+    out_distance_y = L - in_distance_y
+    distance_y = min(in_distance_y, out_distance_y)
+
+    return distance_x, distance_y
+
+def new_vel_of_particle_NN(position, velocity, close_particles):
+    """
+    Computes the average velocity in each dimension and outputs the average of this
+    in each dimension.
+    """
+    global dimensions
+
+    # call alignment and repulsive force
+    al_force = alingment_force(velocity, close_particles[0])
+    re_force = repulsive_force(position, velocity, close_particles[1])
+
+    # add the with constants
+    tot_for = np.add(np.dot(alpha, al_force), np.dot(beta, re_force))
+
+
+    # get the new direction by applying pheta = arctan(<x> / <y>)
+    if tot_for[0] == 0:
+        # if y = 0 then make it go 90 deg
+        angle = math.pi / 2 + random.uniform(- noise / 2, noise / 2)
+    else:
+        # get the new direction
+        angle = math.atan2(tot_for[1], tot_for[0]) + random.uniform(- noise / 2, noise / 2)
+
+    # convert direction to x, y coordinates.
+    tot_for[0], tot_for[1] = angle_to_xy(angle)
+
+    return tot_for
+
+def angle_to_xy(angle):
+    """
+    Takes an angle in radians as input as returns x and y poistion for the corresponding angle
+    using r as v_mag, a predifined value which is the magnitude of the velocity.
+    """
+    # get x using x = cos(angle) and y = sin(angle)
+    x = v_mag * math.cos(angle)
+    y = v_mag * math.sin(angle)
+
+    return x, y
+
+
+# ---------------------------  Test Functions ----------------------------
+def test_angle_form():
+    """
+    Test formula for angle_to_xy.
+    """
+    # populate angles
+    angles = []
+    angle = - math.pi
+    for i in range(7):
+        angles.append(angle)
+        angle += 2 * math.pi / 4
+
+    # run function for angles
+    for angle in angles:
+        x, y = angle_to_xy(angle)
+        print("Angle: {} \n x: {} \n y: {}".format(angle, x, y))
+
+    return None
 
 def test_in_sq():
     """
@@ -299,25 +412,8 @@ def test_in_sq():
     plt.axis([0, L, 0, L])
     plt.show()
 
-def periodic_boundaries(position):
-    """
-    If particle is over the limit of the box run this function and it will return
-    the correct position of the particle.
-    """
-    global L
 
-    # check if its under 0
-    if position < 0:
-        return position + L
-
-    # if its over L
-    elif position > L:
-        return position - L
-
-    # otherwise just return the position
-    else:
-        return position
-
+# --------------------------  Results Functions ---------------------------
 def allignment(velocities):
     """
     Calculates the net allignment of the velocities of all the particles and
@@ -343,6 +439,8 @@ def allignment(velocities):
 
     return v_a
 
+
+# ------------------------   Visualise Functions --------------------------
 def show_allignment_plot(time, allignment):
 
     # plot time vs allignment for x vs y
@@ -353,6 +451,45 @@ def show_allignment_plot(time, allignment):
 
     return None
 
+def show_path_2D(coordinates, clear = True):
+    """
+    Function which takes in the coordinates as described in straight_particle and
+    plots the result on a scatter graph.
+    """
+    global L, N, delta_t
+
+    # start interactive mode
+    plt.ion()
+
+    # crete eempty figure on which data will go and first subplot
+    fig = plt.figure()
+
+    # get into the correct time step
+    for time_step in coordinates:
+        # list of colours used for animation
+        colours = cm.rainbow(np.linspace(0, 1, N))
+
+        # loop over each particle and colour
+        for particle, c in zip(time_step, colours):
+            # plot x, y poistion of particle in a given colour and set axis to size of box
+            plt.scatter(particle[0], particle[1], s = 3, color = c)
+            # plt.plot([particle[0] - r, particle[0] + r, particle[0] + r, particle[0] - r, particle[0] - r],
+            #          [particle[1] - r, particle[1] - r, particle[1] + r, particle[1] + r, particle[1] - r],
+            #          color = c)
+            plt.axis([0, L, 0, L])
+
+        # show graph
+        plt.show()
+        plt.pause(time_pause)
+
+        # decide if you want to clear
+        if clear == True:
+            plt.clf()
+
+    return None
+
+
+# ----------------------- Noise Specific Functions ----------------------
 def noise_variation():
     """
     Plots the variation of the noise vs teh total allignment of the funciton.
@@ -361,7 +498,7 @@ def noise_variation():
     global N, L, noise, U
 
     # list with values of nosie, L and N
-    noise_list = list(np.linspace(0, 5, num = 20))
+    noise_list = list(np.linspace(0, 6, num = 20))
     # L_list = [3.1, 5, 10, 31.6, 50]
     # N = [40, 100, 400, 4000, 10000]
 
@@ -387,14 +524,13 @@ def noise_variation():
 
     return all_list
 
-
 def average_noise_allignment(n_times):
     """
     add together all values for allignment and divide by the number of repeats
     """
 
     # list with values of nosie, L and N
-    noise_list = list(np.linspace(0, 5, num = 20))
+    noise_list = list(np.linspace(0, 6, num = 20))
 
     all_allign = []
 
@@ -410,7 +546,7 @@ def average_noise_allignment(n_times):
     # read in data from file if file exists
     try:
         # read in csv as dataframe
-        df = pd.read_csv("./averages/N_{}.csv".format(N))
+        df = pd.read_csv("./N_{}.csv".format(N))
 
         # convert df to list and get the number of counts for the average
         prev_ave = df["averages"].values.tolist()
@@ -458,7 +594,7 @@ def average_noise_allignment(n_times):
     df_w = pd.DataFrame(data = d)
 
     # write it to csv file
-    df_w.to_csv("./averages/N_{}.csv".format(N), index = False)
+    df_w.to_csv("./N_{}.csv".format(N), index = False)
 
     # plot the average allignment values vs noise
     # plt.scatter(noise_list, average_allignment, s = 2, label = "N = {}, L = {}".format(N, L))
@@ -483,9 +619,9 @@ def run_to_get_averages(n_times):
     # N_list = [40, 100, 400, 4000, 10000]
     # U_best = [80, 200, 300, 800, 1500]
 
-    L_list = [5]
-    N_list = [100]
-    U_best = [200]
+    L_list = [12]
+    N_list = [400]
+    U_best = [10]
 
     # loop over the values in the lists above
     for i in range(len(L_list)):
@@ -510,44 +646,6 @@ def run_to_get_averages(n_times):
     return None
 
 
-
-def show_path_2D(coordinates, clear = True):
-    """
-    Function which takes in the coordinates as described in straight_particle and
-    plots the result on a scatter graph.
-    """
-    global L, N, delta_t
-
-    # start interactive mode
-    plt.ion()
-
-    # crete eempty figure on which data will go and first subplot
-    fig = plt.figure()
-
-    # get into the correct time step
-    for time_step in coordinates:
-        # list of colours used for animation
-        colours = cm.rainbow(np.linspace(0, 1, N))
-
-        # loop over each particle and colour
-        for particle, c in zip(time_step, colours):
-            # plot x, y poistion of particle in a given colour and set axis to size of box
-            plt.scatter(particle[0], particle[1], s = 3, color = c)
-            # plt.plot([particle[0] - r, particle[0] + r, particle[0] + r, particle[0] - r, particle[0] - r],
-            #          [particle[1] - r, particle[1] - r, particle[1] + r, particle[1] + r, particle[1] - r],
-            #          color = c)
-            plt.axis([0, L, 0, L])
-
-        # show graph
-        plt.show()
-        plt.pause(time_pause)
-
-        # decide if you want to clear
-        if clear == True:
-            plt.clf()
-
-    return None
-
 for i in range(4):
     # check the time of the program
-    run_to_get_averages(1)
+    run_to_get_averages(5)
