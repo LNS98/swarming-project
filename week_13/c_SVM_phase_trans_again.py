@@ -6,19 +6,20 @@ Program built to investiagte coding up the physics of object colliding.
 import numpy as np
 import random
 import math
+import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import time
 
 # constants used in the program
-L = 3.1  # size of the box
-N = 40  # number of particles
-M = 1   # number of objects
+L = 5  # size of the box
+N = 100  # number of particles
+M = 0   # number of objects
 v_mag = 0.05      # total magnitude of each particle velocity
 delta_t = 1     # time increment
 mass_par = 1 # masss of the particles
 mass_object = 100 # masss of the particles
-noise = 1  # noise added to the acceleration
+noise = 2.5  # noise added to the acceleration
 
 # distance metrics in the code
 r = 1.0   # radius of allignment
@@ -28,11 +29,11 @@ r_a = 0.8 # radius when attraction starts
 r_o = 0.05 # radius of attraction between the particels and the objects
 
 # force parrameters
-alpha = 1 # stregnth of repulsive force due to the particles
-beta = 1 # stregnth of the force due to the objects
+alpha = 0 # stregnth of repulsive force due to the particles
+beta = 0 # stregnth of the force due to the objects
 gamma = 1 # stregnth of allignment
 
-U = 500   # number of updates
+U = 250   # number of updates
 dimensions = 2   # dimensions
 time_pause = 0.001 # time pause for interactive graph
 
@@ -41,9 +42,8 @@ time_pause = 0.001 # time pause for interactive graph
 
 def main():
 
-    # make 1 complete run of the system
-    ali_end = one_run(plot = True)
-    print("alignment: {}".format(ali_end))
+    # run 3 averages of the noise against allignment
+    average_noise_allignment(15)
 
     return 0
 
@@ -86,9 +86,147 @@ def one_run(plot = False):
 
     # plot the movment of the particles if plot is set to true
     if plot == True:
-        show_path_2D(0, U, pos_part_over_t, pos_obj_over_t, clear = True)
+        show_path_2D(U - 20, U, pos_part_over_t, pos_obj_over_t, clear = True)
 
     return align_end
+
+def variation(nosie, density):
+    """
+    calcualtes the allignment of the systems for different values of the noise.
+    """
+
+    # create a list containg the values of noise tested
+    noise_list = list(np.linspace(0, 5, num = 20))
+
+    # L_list = [3.1, 5, 10, 31.6, 50]
+    # N = [40, 100, 400, 4000, 10000]
+
+    ali_list = []
+
+    # for each value in list run main funciton
+    for no in noise_list:
+        # change the noise to new value of noise for the global variable noise
+        global noise
+        noise = no
+        # get the allignnment from the main funciton
+        all = one_run()
+
+        # append this to the all_list
+        ali_list.append(all)
+
+    return noise_list, ali_list
+
+def average_noise_allignment(n_times):
+    """
+    add together all values for allignment and divide by the number of repeats
+    """
+
+    # list with values of nosie, L and N
+    noise_list = list(np.linspace(0, 5, num = 20))
+
+    all_allign = []
+
+    # for each repeat, add new allignment values to old allignment values
+    for repeat in range(n_times):
+
+        # generate new allignment values
+        all_list = noise_variation()[1]
+
+        # add these new allignment values to the all_allign list
+        all_allign.append(all_list)
+
+    # read in data from file if file exists
+    try:
+        # read in csv as dataframe
+        df = pd.read_csv("./averages/N_{}.csv".format(N))
+
+        # convert df to list and get the number of counts for the average
+        prev_ave = df["averages"].values.tolist()
+        current_averages = int(df["number of averages"].iloc[0])
+
+        # append this to all list
+        all_allign.append(prev_ave)
+
+    except IOError as e:
+        # set the current averages to the number of repeats
+        current_averages = n_times
+
+    # empty array of average allignment
+    average_allignment = []
+
+    # loop over all the items in the list all_list
+    for i in range(len(all_list)):
+        # initialise sum which will be average
+        sum = 0
+
+        # loop over each repeated list from the averaginf process
+        for element in range(n_times):
+            # sum list to then get average
+            sum += all_allign[element][i]
+
+        # if file has been read
+        if len(all_allign) == n_times + 1:
+            # get the old value for the avearge correctly weighted
+            old_ave = all_allign[n_times][i] * current_averages
+
+            # last element multiply by number of times from previous counts
+            sum += old_ave
+
+            # divide by number of repeats to get average
+            sum = sum / (n_times + current_averages)
+        else:
+            # don't  account for extra counts from file
+            sum = sum / n_times
+
+        # append to the lsit containing the averages
+        average_allignment.append(sum)
+
+    # convert the average allignment to a df and the noises as well
+    d = {"noise": noise_list, "averages": average_allignment, "number of averages": (current_averages + n_times)}
+    df_w = pd.DataFrame(data = d)
+
+    # write it to csv file
+    df_w.to_csv("./averages/N_{}.csv".format(N), index = False)
+
+    return None
+
+def run_to_get_averages(n_times):
+    """
+    Run this function to get the averages for each of the different setups
+    (defined below) for 'n_times' repeats plotted on the same graph.
+    """
+    global N, L, U
+    # initalise the differnt values of L and N that are needed
+    # L_list = [3.1, 5, 10, 31.6, 50]
+    # N_list = [40, 100, 400, 4000, 10000]
+    # U_best = [80, 200, 300, 800, 1500]
+
+    L_list = [3.1, 5]
+    N_list = [40, 100]
+    U_best = [80, 200]
+
+    # loop over the values in the lists above
+    for i in range(len(L_list)):
+        # change the values of L and N to the ones from the list
+        N = N_list[i]
+        L = L_list[i]
+        U = U_best[i]
+
+        # check the time of the program
+        start = time.time()
+
+        # run the average function n_times
+        average_noise_allignment(n_times)
+
+        # time after the function
+        end = time.time()
+        print("\n-------- time of program: {} -------------\n".format(end - start))
+
+    #show the scatter plot
+    #plt.show()
+
+    return None
+
 
 # ----------------------- System Functions ---------------------------------
 
@@ -330,12 +468,6 @@ def update_acceleration_object(position_obj, positions_obj, position_particles, 
     return new_acceleration
 
 # ----------------------- Forces Functions ------------------------------
-def contact_force():
-    """
-    Contact force between object and particle.
-    """
-
-    return None
 
 def obj_repulsive_force(i, j):
     """
