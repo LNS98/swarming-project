@@ -12,14 +12,14 @@ import matplotlib.cm as cm
 import time
 
 # constants used in the program
-L = 3.1  # size of the box
+L = 10  # size of the box
 N = 40  # number of particles
 M = 0   # number of objects
 v_mag = 0.05      # total magnitude of each particle velocity
 delta_t = 1     # time increment
 mass_par = 1 # masss of the particles
 mass_object = 100 # masss of the particles
-noise = 0  # noise added to the acceleration
+noise = 2  # noise added to the acceleration
 
 # distance metrics in the code
 r = 1.0   # radius of allignment
@@ -33,7 +33,7 @@ alpha = 0 # stregnth of repulsive force due to the particles
 beta = 0 # stregnth of the force due to the objects
 gamma = 1 # stregnth of allignment
 
-U = 100   # number of updates
+U = 500   # number of updates
 dimensions = 2   # dimensions
 time_pause = 0.001 # time pause for interactive graph
 
@@ -43,7 +43,7 @@ time_pause = 0.001 # time pause for interactive graph
 def main():
 
     # run 3 averages of the noise against allignment
-    average_noise_allignment(100, "noise")
+    average_noise_allignment(1, "density")
 
 
     return 0
@@ -98,7 +98,7 @@ def variation(type):
 
     # create a list containg the values of noise tested
     noise_list = list(np.linspace(0, 5, num = 20))
-    density_list = list(np.linspace(0.0001, 3, num = 20)) + list(np.linspace(3, 10, num = 10))
+    density_list = list(np.linspace(0.0001, 3, num = 15)) + list(np.linspace(3.5, 10, num = 5))
     # L_list = [3.1, 5, 10, 31.6, 50]
     # N = [40, 100, 400, 4000, 10000]
 
@@ -143,7 +143,7 @@ def average_noise_allignment(n_times, type):
 
     # list with values of nosie, L and N
     noise_list = list(np.linspace(0, 5, num = 20))
-    density_list = list(np.linspace(0.0001, 3, num = 20)) + list(np.linspace(3, 10, num = 10))
+    density_list = list(np.linspace(0.0001, 3, num = 15)) + list(np.linspace(3.5, 10, num = 5))
 
     if type == "noise":
         corr_list = noise_list
@@ -178,7 +178,7 @@ def average_noise_allignment(n_times, type):
         # concate this with old array
         df_w = pd.concat([df, df_new], axis=1, join='inner')
 
-        # print(df_w)
+        print(df_w)
 
         # write it to csv file
         df_w.to_csv("./averages_{}/N_{}.csv".format(type, N), index = False)
