@@ -12,14 +12,14 @@ import matplotlib.cm as cm
 import time
 
 # constants used in the program
-L = 10  # size of the box
+L = 20  # size of the box
 N = 100  # number of particles
 M = 0   # number of objects
 v_mag = 0.05      # total magnitude of each particle velocity
 delta_t = 1     # time increment
 mass_par = 1 # masss of the particles
 mass_object = 100 # masss of the particles
-noise = 2  # noise added to the acceleration
+noise = 0  # noise added to the acceleration
 
 # distance metrics in the code
 r = 1.0   # radius of allignment
@@ -27,30 +27,31 @@ r_c = 0.2 # radius within repulsion
 r_e = 0.5 # radius of equilibrium between the particles
 r_a = 0.8 # radius when attraction starts
 r_o = 0.05 # radius of attraction between the particels and the objects
+k = 7 # number of nearest neighbours
 
-# force parrameters
+# force parameters
 alpha = 0 # stregnth of repulsive force due to the particles
 beta = 0 # stregnth of the force due to the objects
 gamma = 1 # stregnth of allignment
 
-U = 500   # number of updates
+# picking a model
+model = "SVM" # select SVM for standard Vicsek Model and kNN for nearest neighbours
+
+U = 1000   # number of updates
 dimensions = 2   # dimensions
 time_pause = 0.001 # time pause for interactive graph
 
 
 
-
 def main():
 
-    # run 3 averages of the noise against allignment
-    average_noise_allignment(5, "density")
-
+    one_run(plot1 = False, plot2 = True)
 
     return 0
 
 # ----------------------- Whole system Functions ---------------------------------
 
-def one_run(plot = False):
+def one_run(plot1 = False, plot2 = False):
     """
     One simulation of a total run by the system.
     """
@@ -67,11 +68,15 @@ def one_run(plot = False):
 
     align_start = allignment(velocities)
 
+    # list for average nearest neighbours at each update U
+    averages_list = []
+    U_list = []
+
     # update the position for 10 times
     for i in range(U):
 
         # call update to get the new positions of the particles
-        positions, velocities = update_system(positions, velocities, accelerations, positions_obj)
+        positions, velocities, average = update_system(positions, velocities, accelerations, positions_obj)
 
         # update the positions of the objects
         positions_obj, velocities_obj = update_system_object(positions_obj, velocities_obj, accelerations_obj,
@@ -83,11 +88,18 @@ def one_run(plot = False):
         pos_obj_over_t.append(positions_obj)
         vel_obj_over_t.append(velocities_obj)
 
+        averages_list.append(average)
+        U_list.append(i)
+
     align_end = allignment(velocities)
 
     # plot the movment of the particles if plot is set to true
-    if plot == True:
+    if plot1 == True:
         show_path_2D(U - U, U, pos_part_over_t, pos_obj_over_t, clear = True)
+
+    if plot2 == True:
+        # plot average neighbours for each time step
+        plot_average_neighbours(averages_list, U_list)
 
     return align_end
 
@@ -133,7 +145,7 @@ def variation(type):
 
         return density_list, ali_list
     else:
-        print("not the correct 'type' given, try 'nosie' or 'density'.")
+        print("not the correct 'type' given, try 'noise' or 'density'.")
         return None
 
 def average_noise_allignment(n_times, type):
@@ -156,7 +168,7 @@ def average_noise_allignment(n_times, type):
         # read in data from file if file exists
         try:
             # read in csv as dataframe
-            df = pd.read_csv("./averages_{}/N_{}.csv".format(type, N))
+            df = pd.read_csv("./averages_{}_{}/N_{}.csv".format(type, model, N))
             average_number = len(df.columns) - 1
 
         except IOError as e:
@@ -180,7 +192,7 @@ def average_noise_allignment(n_times, type):
 
 
         # write it to csv file
-        df_w.to_csv("./averages_{}/N_{}.csv".format(type, N), index = False)
+        df_w.to_csv("./averages_{}_{}/N_{}.csv".format(type, model, N), index = False)
 
     return None
 
@@ -300,6 +312,9 @@ def update_system(positions, velocities, accelerations, positions_obj):
     new_positions = []
     new_vels = []
 
+    # particles within r for all i's
+    particles_within_r_for_all = []
+
     # loop through each index in the positions, vel, acc
     for i in range(N):
         # get the acceleration based on the positions of the particles
@@ -311,7 +326,14 @@ def update_system(positions, velocities, accelerations, positions_obj):
         new_positions.append(new_pos)
         new_vels.append(new_vel)
 
-    return new_positions, new_vels
+        # for each i particle calculate the number within r
+        number_within_r = particles_in_radius(positions[i], positions, velocities)[2]
+        particles_within_r_for_all.append(number_within_r)
+
+    np_particles_within_r_for_all = np.array(particles_within_r_for_all)
+    average = np.mean(np_particles_within_r_for_all)
+
+    return new_positions, new_vels, average
 
 def update_position(position, velocity):
     """
@@ -357,7 +379,7 @@ def update_velocity(velocity, acceleration):
 
 def update_acceleration(position_particle, velocity_particle, position_particles, velocity_particles, positions_obj):
     """
-    Algorithm which updates the algorithm
+    Algorithm which updates the acceleration of each particle
     """
     # define two inital forces dependent on the particles and on hte object
     force_object = np.array([0., 0.])
@@ -376,6 +398,8 @@ def update_acceleration(position_particle, velocity_particle, position_particles
 
     new_acceleration = (alpha * force_particles + beta * force_object +
     gamma * allignment_force(position_particle, velocity_particle, position_particles, velocity_particles)) / mass_par
+
+
 
     return new_acceleration
 
@@ -512,8 +536,13 @@ def allignment_force(position_particle, velocity_particle, position_particles, v
     # convert the velocities to numpy arrays
     velocity_particle = np.array(velocity_particle)
 
-    # get the velocity of particles in radius
-    vel_in_r = np.array(particles_in_radius(position_particle, position_particles, velocities_particles)[0])
+    # If using the Vicsek Model get velocity of particles in radius
+    if model == "SVM":
+        vel_in_r = np.array(particles_in_radius(position_particle, position_particles, velocities_particles)[0])
+
+    # If using kNN neighbours get the velocity of k nearest neighbours
+    if model == "kNN":
+        vel_in_r = np.array(k_particles(position_particle, position_particles, velocities_particles)[0])
 
     # get the average value of that velocity
     vel_wanted = np.mean(vel_in_r, axis = 0)
@@ -676,6 +705,14 @@ def phase_transition(order_parameter_values, control_parameter_values):
 
     return None
 
+def plot_average_neighbours(averages_list, U_list):
+    x = U_list
+    y = averages_list
+
+    plt.scatter(x, y)
+    plt.show()
+
+    return 0
 # ----------------------- Help Functions ------------------------------
 
 def particles_in_radius(position_particle, position_particles, velocities_particles):
@@ -690,6 +727,9 @@ def particles_in_radius(position_particle, position_particles, velocities_partic
 
     # array with all indecies of all particles within range for positions
     positions_within_r = []
+
+    # constant for counting how many particles are within radius
+    number_within_radius = 0
 
     # check over all particles in positions
     for index in range(N):
@@ -719,8 +759,52 @@ def particles_in_radius(position_particle, position_particles, velocities_partic
             # and add position to all positions within r
             positions_within_r.append(position_particles[index])
 
+            # also increase number of particles within radius
+            number_within_radius += 1
 
-    return velocities_within_r, positions_within_r
+    return velocities_within_r, positions_within_r, number_within_radius
+
+def k_particles(chosen_particle, positions, velocities):
+    """
+    Checks and records the k closest particles of chosen_particle.
+    Returns the velocities and positions of those k particles.
+    """
+
+
+    # array with all indecies of all k particles for positions
+    positions_k = []
+    velocities_k = []
+
+    # array of new distances considering boundary conditions
+    new_distances = []
+
+    # check over all particles in positions
+    for index in range(N):
+
+        distance_x, distance_y = per_boun_distance(chosen_particle, positions[index])
+
+        # distance from selected particle to particle with index
+        d = np.sqrt(distance_x**2 + distance_y**2)
+
+        # append this distance to array of distances
+        new_distances.append(d)
+
+    # Now we need a sorting algorithm (merge)
+    for j in range(k+1):
+        low = min(new_distances)
+
+        index_k = new_distances.index(low)
+
+        # get the index of the particle for velocity
+        velocities_k.append(velocities[index_k])
+
+        # get the index of the particle for position
+        # and add position to all positions within r
+        positions_k.append(positions[index_k])
+
+        new_distances.pop(index_k)
+
+    return velocities_k, positions_k
 
 def angle_to_xy(magnitude, angle):
     """

@@ -9,10 +9,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 
-def main(type, N, folder, name_of_file):
+def main(type, model, N, folder, name_of_file):
 
     # read in the data as a df from the correct location
-    df = pd.read_csv("./averages_{}/N_{}.csv".format(type, N))
+    df = pd.read_csv("./averages_{}_{}/N_{}.csv".format(type, model, N))
 
     # get the number of averages
     num_averages = len(df.columns) - 1
@@ -30,4 +30,4 @@ def main(type, N, folder, name_of_file):
     return 0
 
 
-main("noise", 40, "SVM", "averages_N_40")
+main("noise", "kNN", 400, "kNN_model", "averages_N_400")
