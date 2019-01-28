@@ -8,25 +8,26 @@ import math
 import matplotlib.pyplot as plt
 import matplotlib.path as mpltPath
 import matplotlib.cm as cm
+from shapely.geometry import LineString, Point
 import time
 
 # constants used in the program
-bound_cond = False   # set the boundry conditions on or off
+bound_cond = True   # set the boundry conditions on or off
 L = 10  # size of the box
-N = 40  # number of particles
-M = 1   # number of objects
+N = 30  # number of particles
+M = 0   # number of objects
 v_mag = 0.05      # total magnitude of each particle velocity
 delta_t = 1     # time increment
 mass_par = 1 # masss of the particles
 mass_object = 100 # masss of the particles
-noise = 2.5  # noise added to the acceleration
+noise = 2  # noise added to the acceleration
 
 # distance metrics in the code
 r = 1.0   # radius of allignment
 r_c = 0.2 # radius within repulsion
 r_e = 0.5 # radius of equilibrium between the particles
 r_a = 0.8 # radius when attraction starts
-r_o = 0.1 # radius of attraction between the particels and the objects
+r_o = 0.05 # radius of attraction between the particels and the objects
 
 # force parrameters
 alpha = 0 # stregnth of repulsive force due to the particles
@@ -57,18 +58,20 @@ def one_run(plot = False):
     One simulation of a total run by the system.
     """
 
-    # produce the polygons
-    polygons = [list(polygon()) for i in range(M)]
+    # produce the polygons (verticeies of the polygon)
+    positions_polygons = [list(polygon()) for i in range(M)]
 
     # fill up a box with particles and objects
     positions, velocities, accelerations = pop_box()
-    positions_obj, velocities_obj, accelerations_obj = objects(polygons)
+    # MAYBE MAKE THIS POP_OBJECTS
+    # returns positions, velocities, accelerations of com of objects
+    positions_obj, velocities_obj, accelerations_obj = objects(positions_polygons)
 
     # append the positions to the positions over time
     pos_part_over_t = [positions]
     vel_part_over_t = [velocities]
     pos_obj_over_t = [positions_obj]
-    pos_poly_over_t = [polygons]
+    pos_poly_over_t = [positions_polygons]
     vel_obj_over_t = [velocities_obj]
 
     # get the allignment
@@ -81,10 +84,10 @@ def one_run(plot = False):
     for i in range(U):
 
         # call update to get the new positions of the particles
-        positions, velocities = update_system(positions, velocities, accelerations, positions_obj)
+        positions, velocities = update_system(positions, velocities, accelerations, positions_obj, positions_polygons)
 
         # update the positions of the objects
-        positions_polygons, positions_obj, velocities_obj = update_system_object(polygons, positions_obj, velocities_obj, accelerations_obj,
+        positions_polygons, positions_obj, velocities_obj = update_system_object(positions_polygons, positions_obj, velocities_obj, accelerations_obj,
                                                                      positions, velocities)
 
         # append in positions over time
@@ -102,7 +105,7 @@ def one_run(plot = False):
 
     # plot the movment of the particles if plot is set to true
     if plot == True:
-        show_path_2D(U - U, U, pos_part_over_t, pos_poly_over_t,  clear = True)
+        show_path_2D(U - U, U, pos_part_over_t, pos_poly_over_t, pos_obj_over_t, clear = True)
 
     return align_end, SD_list
 
@@ -114,12 +117,11 @@ def polygon():
     """
     # regular polygon for testing
     # lenpoly = 5
-    # polygon = np.array([[random.random() + L/2, random.random() + L/2] for x in np.linspace(0,2*np.pi,lenpoly)[:-1]])
+    # polygon = np.array([[random.random() + L/2, random.random() + L/2] for x in range(4)])
 
     polygon = np.array([[L/2 - 1, L/2 - 1], [L/2 + 1, L/2 - 1], [L/2 + 1, L/2 + 1], [L/2 - 1, L/2 + 1]])
 
     return polygon
-
 
 # ----------------------- System Functions ---------------------------------
 
@@ -135,7 +137,7 @@ def pop_box():
 
     for i in range(N):
         # lsit containing positions and velocities at random
-        init_position = [random.uniform(0, L/2 - 1) or random.uniform(L/2 + 1, L) for i in range(dimensions)]
+        init_position = [random.choice([random.uniform(0, L/2 - 1), random.uniform(L/2 + 1, L)]) for i in range(dimensions)] # IMPROVE
         init_velocity = [random.uniform(-1, 1) for i in range(dimensions)]
         init_acceleration = [0 for i in range(dimensions)]
 
@@ -191,7 +193,7 @@ def periodic_boundaries(position):
 
 # ----------------------- Update Functions for particles --------------------
 
-def update_system(positions, velocities, accelerations, positions_obj):
+def update_system(positions, velocities, accelerations, positions_obj, polygons):
     """
     Updates the positons and velocities of ALL the particles in a system.
     """
@@ -202,7 +204,7 @@ def update_system(positions, velocities, accelerations, positions_obj):
     # loop through each index in the positions, vel, acc
     for i in range(N):
         # get the acceleration based on the positions of the particles
-        acceleration = update_acceleration(positions[i], velocities[i], positions, velocities, positions_obj)
+        acceleration = update_acceleration(positions[i], velocities[i], positions, velocities, positions_obj, polygons)
         # call update to get the new value
         new_vel = update_velocity(velocities[i], acceleration)
         new_pos = update_position(positions[i], new_vel)
@@ -257,7 +259,7 @@ def update_velocity(velocity, acceleration):
 
     return new_vel
 
-def update_acceleration(position_particle, velocity_particle, position_particles, velocity_particles, positions_obj):
+def update_acceleration(position_particle, velocity_particle, position_particles, velocity_particles, positions_obj, polygons):
     """
     Algorithm which updates the algorithm
     """
@@ -272,8 +274,8 @@ def update_acceleration(position_particle, velocity_particle, position_particles
         force_particles += chate_rep_att_force(position_particle, particle)
 
     # calcualte force due to the objects
-    for object in positions_obj:
-        force_object += obj_repulsive_force(position_particle, object)
+    for object in range(len(positions_obj)):
+        force_object -= 1e30 * contact_force_object(polygons[object], positions_obj[object], velocity_particle, position_particle)
 
 
     new_acceleration = (alpha * force_particles + beta * force_object +
@@ -285,7 +287,7 @@ def update_acceleration(position_particle, velocity_particle, position_particles
 
 def update_system_object(polygons, positions_obj, velocities_obj, accelerations_obj, position_particles, velocity_particles):
     """
-    Updates the positons and velocities of ALL the particles in a system.
+    Updates the positons and velocities of ALL the objects in a system.
     """
     # lists which will contain the updated values
     new_positions = []
@@ -324,8 +326,10 @@ def update_position_object(positions_obj, velocities_obj):
 
         # add the velocity in that dimension to the position (times delta_t)
         pos_i = positions_obj[i] + velocities_obj[i] * delta_t
-        # print(positions_obj[i], velocities_obj[i], pos_i)
-        pos_i = periodic_boundaries(pos_i)
+
+        # chek for boundry conditions
+        if bound_cond == True:
+            pos_i = periodic_boundaries(pos_i)
 
         # append to the new_position and velocity list this position/velocity
         new_pos.append(pos_i)
@@ -351,15 +355,15 @@ def update_velocity_object(velocities_obj, accelerations_obj):
 
 def update_acceleration_object(polygon, position_obj, positions_obj, position_particles, velocity_particles):
     """
-    Algorithm which updates the algorithm
+    Algorithm which updates the acceleration of the com of the object
     """
     # define two inital forces dependent on the particles and on hte object
     force_object = np.array([0., 0.])
     force_particles = np.array([0., 0.])
 
     # loop through each particle and calculate the repulsive force from the particle
-    for particle in position_particles:
-        force_particles += contact_force(polygon, position_obj, particle)
+    for particle in range(len(position_particles)):
+        force_particles += contact_force_object(polygon, position_obj, velocity_particles[particle],position_particles[particle])
 
     # calcualte force due to the objects
     for object in positions_obj:
@@ -380,7 +384,6 @@ def update_position_object_vertex(polygon, velocities_obj):
     polygon = np.array(polygon)
     x, y = polygon.T
 
-
     # add the velocity in that dimension to the position (times delta_t)
     new_x = x + velocities_obj[0] * delta_t
     new_y = y + velocities_obj[1] * delta_t
@@ -392,7 +395,36 @@ def update_position_object_vertex(polygon, velocities_obj):
 
 
 # ----------------------- Forces Functions ------------------------------
-def contact_force(polygon, position_obj, position_particle):
+
+def contact_force_object(polygon, position_obj, velocity_particle, position_particle):
+    """
+    Contact force between object and particle.
+    """
+
+    # check if the particle is within the polygon, if yes it is in contact
+    path = mpltPath.Path(polygon)
+    inside = path.contains_point(position_particle, radius = 0.1)
+
+    if inside == True:
+
+
+
+
+        # magnitude of force
+        magnitude = 10
+
+        # get the x direction of the force
+        F_x = (magnitude * velocity_particle[0])
+
+        # get the y direction of the force
+        F_y = (magnitude * velocity_particle[1])
+
+        return np.array([F_x, F_y])
+
+    else:
+        return np.array([0, 0])
+
+def contact_force_particle(polygon, position_obj, velocity_particle, position_particle):
     """
     Contact force between object and particle.
     """
@@ -402,26 +434,16 @@ def contact_force(polygon, position_obj, position_particle):
     inside = path.contains_point(position_particle)
 
     if inside == True:
-
-        if bound_cond == True:
-            # calculate the distance between the points
-            distance_x, distance_y = per_boun_distance(position_obj, position_particle)
-            # calcualte the magnitude of the distance between the points
-            distance = (distance_x ** 2 + distance_y ** 2) ** (1/2)
-
-        else:
-            distance_x, distance_y = position_particle[0] - position_obj[0], position_particle[1] - position_obj[1]
-            distance = distance_fun(position_obj, position_particle)
-
         # magnitude of force
-        magnitude = -1
+        magnitude = 1
 
         # get the x direction of the force
-        F_x = (magnitude * distance_x) / distance
+        F_x = (magnitude * velocity_particle[0])
 
         # get the y direction of the force
-        F_y = (magnitude * distance_y) / distance
+        F_y = (magnitude * velocity_particle[1])
 
+        print([F_x, F_y])
         return np.array([F_x, F_y])
 
     else:
@@ -429,7 +451,7 @@ def contact_force(polygon, position_obj, position_particle):
 
 def obj_repulsive_force(i, j):
     """
-    calculates the force used in the repulsive_force function.
+    calculates the force used in the repulsive_force function. As per chate 2008
     """
     if bound_cond == True:
         # calculate the distance between the points
@@ -441,8 +463,12 @@ def obj_repulsive_force(i, j):
         distance_x, distance_y = j[0] - i[0], j[1] - i[1]
         distance = distance_fun(i, j)
 
-    # magnitude of force
-    magnitude = -1 /(1 + math.exp(distance/ r_o))
+    try:
+        # magnitude of force
+        magnitude = -1 /(1 + math.exp(distance/ r_o))
+
+    except OverflowError as err:
+        magnitude = 0
 
     # get the x direction of the force
     F_x = (magnitude * distance_x) / distance
@@ -600,9 +626,10 @@ def SD_COM(position_particles):
         sum += distance_fun(particle, com)
 
     return sum
+
 # ----------------------- Visualise Functions ------------------------------
 
-def show_path_2D(start, end, coordinates, polygons, clear = True):
+def show_path_2D(start, end, coordinates, polygons, polygons_com, clear = True):
     """
     Function which takes in the coordinates as described in straight_particle and
     plots the result on a scatter graph.
@@ -640,10 +667,11 @@ def show_path_2D(start, end, coordinates, polygons, clear = True):
 
                 # plot the polygon
                 plt.plot(x , y)
+                plt.scatter(polygons_com[time_step][i][0], polygons_com[time_step][i][1], s = 5, color = 'g')
 
             if bound_cond == True:
                 plt.axis([0, L, 0, L])
-            # plt.axis([0, L, 0, L])
+            plt.axis([0, L, 0, L])
             # plt.axis([-L*2, L*2, -L*2, L*2])
 
         # show graph
@@ -751,6 +779,7 @@ def get_com(particle_positions):
 
     # array containing which will contain the com
     com = []
+    number_of_particles = len(particle_positions)
 
     # loop over each dimension
     for i in range(dimensions):
@@ -758,12 +787,11 @@ def get_com(particle_positions):
         sum_i = 0
 
         # loop over each particle
-        for particle in range(len(particle_positions)):
-
+        for particle in range(number_of_particles):
             sum_i += particle_positions[particle][i]
 
         # now average the sum over N and append to the com
-        sum_i = sum_i / N
+        sum_i = sum_i / number_of_particles
         com.append(sum_i)
 
     return np.array(com)
@@ -835,37 +863,22 @@ def help():
     """
     global N
 
-    # regular polygon for testing
-    lenpoly = 5
-    polygon = np.array([[np.sin(x)+0.5,np.cos(x)+0.5] for x in np.linspace(0,2*np.pi,lenpoly)[:-1]])
+    ip = LineString([(0, 0), (0, 1), (1, 1)]).interpolate(1.5)
+
+    print(ip.wkt)
+
+    # plot the result
+    # x, y = poly.exterior.xy
+    # plt.plot(x, y)
+    # plt.show()
 
 
-    # random points set of points to test
-    N = 10000
-    points = np.array([[random.random(),random.random()] for x in range(N)])
-
-    print(polygon)
-
-    # get the points of the polygon to plot it
-    x, y = polygon.T
-    x = np.append(x, x[0])
-    y = np.append(y, y[0])
-
-    print(x, y)
-
-    # plot the polygon
-    plt.plot(x , y)
-    plt.show()
-
-    path = mpltPath.Path(polygon)
-    inside2 = path.contains_point(points[0])
-    print(inside2)
 
     return None
 
 
 # run program
 start = time.time()
-main()
-# help()
+# main()
+help()
 print("------------------------- Time Taken: {} -------------------".format(time.time() - start))

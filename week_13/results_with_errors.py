@@ -19,15 +19,15 @@ def main(type, N, folder, name_of_file):
 
 
     # get the mean,  std, standard error
-    df["mean ({} averages)".format(num_averages)] = df.drop("noise", 1).mean(axis = 1)
-    df["std"] = df.drop(["mean ({} averages)".format(num_averages), "noise"], 1).std(axis = 1)
-    df["std_error"] = df.drop(["noise", "mean ({} averages)".format(num_averages), "std"], 1).std(axis = 1) / np.sqrt(num_averages)
+    df["mean ({} averages)".format(num_averages)] = df.drop(type, 1).mean(axis = 1)
+    df["std"] = df.drop(["mean ({} averages)".format(num_averages), type], 1).std(axis = 1)
+    df["std_error"] = df.drop([type, "mean ({} averages)".format(num_averages), "std"], 1).std(axis = 1) / np.sqrt(num_averages)
 
     # get another df with  the correct information and write it to a results file
-    df2 = df[["noise", "mean ({} averages)".format(num_averages), "std", "std_error"]]
+    df2 = df[[type, "mean ({} averages)".format(num_averages), "std", "std_error"]]
     df2.to_csv("../results/{}/{}.csv".format(folder, name_of_file), index = False)
 
     return 0
 
 
-main("noise", 40, "SVM", "averages_N_40")
+main("noise", 100, "SVM", "noise_averages_N_100")

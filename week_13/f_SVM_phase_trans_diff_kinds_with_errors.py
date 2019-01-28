@@ -19,7 +19,7 @@ v_mag = 0.05      # total magnitude of each particle velocity
 delta_t = 1     # time increment
 mass_par = 1 # masss of the particles
 mass_object = 100 # masss of the particles
-noise = 2  # noise added to the acceleration
+noise = 0.5  # noise added to the acceleration
 
 # distance metrics in the code
 r = 1.0   # radius of allignment
@@ -43,7 +43,7 @@ time_pause = 0.001 # time pause for interactive graph
 def main():
 
     # run 3 averages of the noise against allignment
-    average_noise_allignment(1, "density")
+    average_noise_allignment(10, "density")
 
 
     return 0
@@ -177,8 +177,6 @@ def average_noise_allignment(n_times, type):
         # print(df_new.head())
         # concate this with old array
         df_w = pd.concat([df, df_new], axis=1, join='inner')
-
-        print(df_w)
 
         # write it to csv file
         df_w.to_csv("./averages_{}/N_{}.csv".format(type, N), index = False)
