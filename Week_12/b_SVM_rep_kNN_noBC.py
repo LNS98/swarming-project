@@ -426,7 +426,7 @@ def show_path_2D(start, end, coordinates, clear = True):
             # plt.plot([particle[0] - r, particle[0] + r, particle[0] + r, particle[0] - r, particle[0] - r],
             #          [particle[1] - r, particle[1] - r, particle[1] + r, particle[1] + r, particle[1] - r],
             #          color = c)
-            # plt.axis([0, L, 0, L])
+            plt.axis([-100, 100, -100, 100])
 
         # show graph
         plt.show()
