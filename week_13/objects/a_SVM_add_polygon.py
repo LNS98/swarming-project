@@ -863,9 +863,13 @@ def help():
     """
     global N
 
-    ip = LineString([(0, 0), (0, 1), (1, 1)]).interpolate(1.5)
+    poly = Polygon([(0, 0), (2,8), (14, 10), (6,1)])
+    point = Point(12,4)
 
-    print(ip.wkt)
+    pol_ext = LinearRing(poly.exterior.coords)
+    d = pol_ext.project(point)
+    p = pol_ext.interpolate(d)
+    closest_point_coords = list(p.coords)[0]
 
     # plot the result
     # x, y = poly.exterior.xy
