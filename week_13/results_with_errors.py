@@ -1,5 +1,5 @@
 """
-Takes the csv file ( for given N) containg the repeats for each noise level,
+Takes the csv file (for given N) containg the repeats for each noise level,
 computes, average, std, standard error and exports to new file.
 """
 
@@ -30,4 +30,4 @@ def main(type, model, N, folder, name_of_file):
     return 0
 
 
-main("noise", 100, "SVM", "noise_averages_N_100")
+main("k_density", "kNN", 100, "kNN_model", "varying_k_N_100")

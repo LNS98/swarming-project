@@ -12,8 +12,8 @@ import matplotlib.cm as cm
 import time
 
 # constants used in the program
-L = 10  # size of the box
-N = 400  # number of particles
+L = 40  # size of the box
+N = 100  # number of particles
 M = 0   # number of objects
 v_mag = 0.05      # total magnitude of each particle velocity
 delta_t = 1     # time increment
@@ -37,7 +37,7 @@ gamma = 1 # stregnth of allignment
 # picking a model
 model = "kNN" # select SVM for standard Vicsek Model and kNN for nearest neighbours
 
-U = 20   # number of updates
+U = 100   # number of updates
 dimensions = 2   # dimensions
 time_pause = 0.001 # time pause for interactive graph
 
@@ -45,7 +45,7 @@ time_pause = 0.001 # time pause for interactive graph
 
 def main():
 
-    average_noise_allignment(10, "density")
+    average_noise_allignment(5, "k_density")
 
     return 0
 
@@ -100,6 +100,7 @@ def variation(type):
     # create a list containg the values of noise tested
     noise_list = list(np.linspace(0, 5, num = 20))
     density_list = list(np.linspace(0.0001, 3, num = 15)) + list(np.linspace(3.5, 10, num = 5))
+    k_list = [i for i in range(20)]
     # L_list = [3.1, 5, 10, 31.6, 50]
     # N = [40, 100, 400, 4000, 10000]
 
@@ -133,6 +134,20 @@ def variation(type):
             ali_list.append(all)
 
         return density_list, ali_list
+
+    if type == "k_density":
+        # for each value in list run main funciton
+        for k_value in k_list:
+            # change the noise to new value of noise for the global variable noise
+            global k
+            k = k_value
+            # get the allignnment from the main funciton
+            all = one_run()
+
+            # append this to the all_list
+            ali_list.append(all)
+
+        return k_list, ali_list
     else:
         print("not the correct 'type' given, try 'noise' or 'density'.")
         return None
@@ -145,11 +160,14 @@ def average_noise_allignment(n_times, type):
     # list with values of nosie, L and N
     noise_list = list(np.linspace(0, 5, num = 20))
     density_list = list(np.linspace(0.0001, 3, num = 15)) + list(np.linspace(3.5, 10, num = 5))
+    k_list = [i for i in range(20)]
 
     if type == "noise":
         corr_list = noise_list
     if type == "density":
         corr_list = density_list
+    if type == "k_density":
+        corr_list = k_list
 
     # for each repeat, add new allignment values to old allignment values
     for repeat in range(n_times):
