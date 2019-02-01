@@ -1,6 +1,7 @@
 """
-Takes the csv file ( for given N) containg the repeats for each noise level,
-computes, average, std, standard error and exports to new file.
+Takes the csv file ( for given N) containg the repeats for each type,
+computes, average, std, standard error and exports to new file. This is
+for the average neighbours in SVM
 """
 
 
@@ -9,10 +10,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 
-def main(type, model, N, folder, name_of_file):
+def main(type, N, folder, name_of_file):
 
     # read in the data as a df from the correct location
-    df = pd.read_csv("./averages_{}_{}/N_{}.csv".format(type, model, N))
+    df = pd.read_csv("./neighbours_variation_with_{}_N{}.csv".format(type, N))
 
     # get the number of averages
     num_averages = len(df.columns) - 1
@@ -25,9 +26,9 @@ def main(type, model, N, folder, name_of_file):
 
     # get another df with  the correct information and write it to a results file
     df2 = df[[type, "mean ({} averages)".format(num_averages), "std", "std_error"]]
-    df2.to_csv("../results/{}/{}.csv".format(folder, name_of_file), index = False)
+    df2.to_csv("../../results/{}/{}.csv".format(folder, name_of_file), index = False)
 
     return 0
 
 
-main("density", "SVM", 100, "SVM", "density_averages_N100")
+main("density", 100, "average_neighbours_SVM", "average_neighbours_N100")

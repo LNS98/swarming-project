@@ -12,8 +12,8 @@ import matplotlib.cm as cm
 import time
 
 # constants used in the program
-L = 5 # size of the box
-N = 100  # number of particles
+L = 3.1  # size of the box
+N = 40  # number of particles
 M = 0   # number of objects
 v_mag = 0.05      # total magnitude of each particle velocity
 delta_t = 1     # time increment
@@ -27,7 +27,7 @@ r_c = 0.2 # radius within repulsion
 r_e = 0.5 # radius of equilibrium between the particles
 r_a = 0.8 # radius when attraction starts
 r_o = 0.05 # radius of attraction between the particels and the objects
-k = 18 # number of nearest neighbours
+k = 7 # number of nearest neighbours
 
 # force parameters
 alpha = 0 # stregnth of repulsive force due to the particles
@@ -37,7 +37,7 @@ gamma = 1 # stregnth of allignment
 # picking a model
 model = "SVM" # select SVM for standard Vicsek Model and kNN for nearest neighbours
 
-U = 250   # number of updates
+U = 100   # number of updates
 dimensions = 2   # dimensions
 time_pause = 0.001 # time pause for interactive graph
 
@@ -45,13 +45,17 @@ time_pause = 0.001 # time pause for interactive graph
 
 def main():
 
-    average_noise_allignment(100, "density")
+    averages_list = one_run(plot1 = False, plot2 = False)[1]
+    averages_array = np.array(averages_list)
+    average = np.mean(averages_array)
+
+    print(average)
 
     return 0
 
 # ----------------------- Whole system Functions ---------------------------------
 
-def one_run(plot = False):
+def one_run(plot1 = False, plot2 = False):
     """
     One simulation of a total run by the system.
     """
@@ -68,13 +72,16 @@ def one_run(plot = False):
 
     align_start = allignment(velocities)
 
-    ali_array = []
+    # list for average nearest neighbours at each update U
+    averages_list = []
+    for_total_average = []
+    U_list = []
 
     # update the position for 10 times
     for i in range(U):
 
         # call update to get the new positions of the particles
-        positions, velocities = update_system(positions, velocities, accelerations, positions_obj)
+        positions, velocities, average = update_system(positions, velocities, accelerations, positions_obj)
 
         # update the positions of the objects
         positions_obj, velocities_obj = update_system_object(positions_obj, velocities_obj, accelerations_obj,
@@ -86,15 +93,22 @@ def one_run(plot = False):
         pos_obj_over_t.append(positions_obj)
         vel_obj_over_t.append(velocities_obj)
 
-        ali_array.append(allignment(velocities))
+        averages_list.append(average)
+        U_list.append(i)
+
+        if U > 60: for_total_average.append(average)
+
     align_end = allignment(velocities)
 
     # plot the movment of the particles if plot is set to true
-    if plot == True:
+    if plot1 == True:
         show_path_2D(U - U, U, pos_part_over_t, pos_obj_over_t, clear = True)
 
+    if plot2 == True:
+        # plot average neighbours for each time step
+        plot_average_neighbours(averages_list, U_list)
 
-    return align_end
+    return align_end, for_total_average
 
 def variation(type):
     """
@@ -182,6 +196,55 @@ def average_noise_allignment(n_times, type):
         # print(df_new.head())
         # concate this with old array
         df_w = pd.concat([df, df_new], axis=1, join='inner')
+
+
+        # write it to csv file
+        df_w.to_csv("./averages_{}_{}/N_{}.csv".format(type, model, N), index = False)
+
+    return None
+
+def average_neighbours_with_noise(n_times, type):
+    """
+    Creates a file with repeats for neghbours as noise/density are varied.
+    """
+
+    # list with values of nosie, L and N
+    noise_list = list(np.linspace(0, 5, num = 20))
+    density_list = list(np.linspace(0.0001, 3, num = 15)) + list(np.linspace(3.5, 10, num = 5))
+
+    if type == "noise":
+        corr_list = noise_list
+    if type == "density":
+        corr_list = density_list
+
+    # for each repeat, add new allignment values to old allignment values
+    for repeat in range(n_times):
+
+        # read in data from file if file exists
+        try:
+            # read in csv as dataframe
+            df = pd.read_csv("./averages_{}_{}/N_{}.csv".format(type, model, N))
+            average_number = len(df.columns) - 1
+
+        except IOError as e:
+            # set the current averages to the number of repeats
+            average_number = 0
+            df = pd.DataFrame({type: corr_list})
+            # df.to_csv("./averages_{}/N_{}.csv".format(type, N))
+
+
+        # generate new allignment values
+        al_list = variation(type)[1]
+
+        # convert the average allignment to a df and the noises as well
+        d = {"average_{}".format(average_number): al_list}
+        df_new = pd.DataFrame(data = d)
+
+        # print(df.head())
+        # print(df_new.head())
+        # concate this with old array
+        df_w = pd.concat([df, df_new], axis=1, join='inner')
+
 
         # write it to csv file
         df_w.to_csv("./averages_{}_{}/N_{}.csv".format(type, model, N), index = False)
@@ -304,6 +367,9 @@ def update_system(positions, velocities, accelerations, positions_obj):
     new_positions = []
     new_vels = []
 
+    # particles within r for all i's
+    particles_within_r_for_all = []
+
     # loop through each index in the positions, vel, acc
     for i in range(N):
         # get the acceleration based on the positions of the particles
@@ -315,7 +381,14 @@ def update_system(positions, velocities, accelerations, positions_obj):
         new_positions.append(new_pos)
         new_vels.append(new_vel)
 
-    return new_positions, new_vels
+        # for each i particle calculate the number within r
+        number_within_r = particles_in_radius(positions[i], positions, velocities)[2]
+        particles_within_r_for_all.append(number_within_r)
+
+    np_particles_within_r_for_all = np.array(particles_within_r_for_all)
+    average = np.mean(np_particles_within_r_for_all)
+
+    return new_positions, new_vels, average
 
 def update_position(position, velocity):
     """
@@ -687,6 +760,14 @@ def phase_transition(order_parameter_values, control_parameter_values):
 
     return None
 
+def plot_average_neighbours(averages_list, U_list):
+    x = U_list
+    y = averages_list
+
+    plt.scatter(x, y)
+    plt.show()
+
+    return 0
 # ----------------------- Help Functions ------------------------------
 
 def particles_in_radius(position_particle, position_particles, velocities_particles):
@@ -702,7 +783,8 @@ def particles_in_radius(position_particle, position_particles, velocities_partic
     # array with all indecies of all particles within range for positions
     positions_within_r = []
 
-
+    # constant for counting how many particles are within radius
+    number_within_radius = 0
 
     # check over all particles in positions
     for index in range(N):
@@ -732,8 +814,10 @@ def particles_in_radius(position_particle, position_particles, velocities_partic
             # and add position to all positions within r
             positions_within_r.append(position_particles[index])
 
+            # also increase number of particles within radius
+            number_within_radius += 1
 
-    return velocities_within_r, positions_within_r
+    return velocities_within_r, positions_within_r, number_within_radius
 
 def k_particles(chosen_particle, positions, velocities):
     """

@@ -12,14 +12,14 @@ import matplotlib.cm as cm
 import time
 
 # constants used in the program
-L = 20  # size of the box
-N = 100  # number of particles
+L = 10  # size of the box
+N = 400  # number of particles
 M = 0   # number of objects
 v_mag = 0.05      # total magnitude of each particle velocity
 delta_t = 1     # time increment
 mass_par = 1 # masss of the particles
 mass_object = 100 # masss of the particles
-noise = 0  # noise added to the acceleration
+noise = 1  # noise added to the acceleration
 
 # distance metrics in the code
 r = 1.0   # radius of allignment
@@ -37,7 +37,7 @@ gamma = 1 # stregnth of allignment
 # picking a model
 model = "SVM" # select SVM for standard Vicsek Model and kNN for nearest neighbours
 
-U = 1000   # number of updates
+U = 800   # number of updates
 dimensions = 2   # dimensions
 time_pause = 0.001 # time pause for interactive graph
 
@@ -45,7 +45,7 @@ time_pause = 0.001 # time pause for interactive graph
 
 def main():
 
-    one_run(plot1 = False, plot2 = True)
+    average_neighbours_variation(1, "density")
 
     return 0
 
@@ -70,6 +70,7 @@ def one_run(plot1 = False, plot2 = False):
 
     # list for average nearest neighbours at each update U
     averages_list = []
+    for_total_average = []
     U_list = []
 
     # update the position for 10 times
@@ -91,6 +92,8 @@ def one_run(plot1 = False, plot2 = False):
         averages_list.append(average)
         U_list.append(i)
 
+        if U > 60: for_total_average.append(average)
+
     align_end = allignment(velocities)
 
     # plot the movment of the particles if plot is set to true
@@ -101,7 +104,10 @@ def one_run(plot1 = False, plot2 = False):
         # plot average neighbours for each time step
         plot_average_neighbours(averages_list, U_list)
 
-    return align_end
+    np_average = np.array(for_total_average)
+    mean = np.mean(np_average)
+
+    return align_end, mean
 
 def variation(type):
     """
@@ -114,7 +120,7 @@ def variation(type):
     # L_list = [3.1, 5, 10, 31.6, 50]
     # N = [40, 100, 400, 4000, 10000]
 
-    ali_list = []
+    neighbours_list = []
 
     if type == "noise":
 
@@ -123,13 +129,22 @@ def variation(type):
             # change the noise to new value of noise for the global variable noise
             global noise
             noise = no
-            # get the allignnment from the main funciton
-            all = one_run()
+
+            # print("no")
+            # print(no)
+            # get the NN from the main funciton
+            all = one_run()[1]
+
+            # print("average NN for each no")
+            # print(all)
 
             # append this to the all_list
-            ali_list.append(all)
+            neighbours_list.append(all)
 
-        return noise_list, ali_list
+        # print("neighbours_list:")
+        # print(neighbours_list)
+
+        return noise_list, neighbours_list
 
     if type == "density":
         # for each value in list run main funciton
@@ -138,12 +153,12 @@ def variation(type):
             global L
             L = (N / density) ** (1 / 2)
             # get the allignnment from the main funciton
-            all = one_run()
+            all = one_run()[1]
 
             # append this to the all_list
-            ali_list.append(all)
+            neighbours_list.append(all)
 
-        return density_list, ali_list
+        return density_list, neighbours_list
     else:
         print("not the correct 'type' given, try 'noise' or 'density'.")
         return None
@@ -175,7 +190,6 @@ def average_noise_allignment(n_times, type):
             # set the current averages to the number of repeats
             average_number = 0
             df = pd.DataFrame({type: corr_list})
-            # df.to_csv("./averages_{}/N_{}.csv".format(type, N))
 
 
         # generate new allignment values
@@ -193,6 +207,53 @@ def average_noise_allignment(n_times, type):
 
         # write it to csv file
         df_w.to_csv("./averages_{}_{}/N_{}.csv".format(type, model, N), index = False)
+
+    return None
+
+def average_neighbours_variation(n_times, type):
+    """
+    Creates a file with repeats of how average neighbours vary with noise
+    /density in the SVM - the type are the control parameters.
+    """
+
+    # list with values of nosie, L and N
+    noise_list = list(np.linspace(0, 5, num = 20))
+    density_list = list(np.linspace(0.0001, 3, num = 15)) + list(np.linspace(3.5, 10, num = 5))
+
+    if type == "noise":
+        corr_list = noise_list
+    if type == "density":
+        corr_list = density_list
+
+    # for each repeat, add new allignment values to old allignment values
+    for repeat in range(n_times):
+
+        # read in data from file if file exists
+        try:
+            # read in csv as dataframe
+            df = pd.read_csv("./neighbours_variation_with_{}_N{}.csv".format(type, N))
+            average_number = len(df.columns) - 1
+
+        except IOError as e:
+            # set the current averages to the number of repeats
+            average_number = 0
+            df = pd.DataFrame({type: corr_list})
+
+
+        # generate new allignment values
+        all_neighbours_list = variation(type)[1]
+
+        # convert the average allignment to a df and the noises as well
+        d = {"average_{}".format(average_number): all_neighbours_list}
+        df_new = pd.DataFrame(data = d)
+
+        # print(df.head())
+        # print(df_new.head())
+        # concate this with old array
+        df_w = pd.concat([df, df_new], axis=1, join='inner')
+
+        # write it to csv file
+        df_w.to_csv("./neighbours_variation_with_{}_N{}.csv".format(type, N), index = False)
 
     return None
 
