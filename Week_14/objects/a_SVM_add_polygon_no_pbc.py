@@ -21,6 +21,7 @@ delta_t = 1     # time increment
 mass_par = 1 # masss of the particles
 mass_object = 10 # masss of the object
 noise = 0  # noise added to the acceleration
+k = 7 # nearest neighbours
 
 # distance metrics in the code
 r = 1.0   # radius of allignment
@@ -33,6 +34,11 @@ r_o = 0.05 # radius of attraction between the particels and the objects
 alpha = 0 # stregnth of repulsive force due to the particles
 beta = 1 # stregnth of the force due to the objects
 gamma = 0 # stregnth of allignment
+
+
+# picking a model
+model = "SVM" # select SVM for standard Vicsek Model and kNN for nearest neighbours
+
 
 U = 500   # number of updates
 dimensions = 2   # dimensions
@@ -537,8 +543,13 @@ def allignment_force(position_particle, velocity_particle, position_particles, v
     # convert the velocities to numpy arrays
     velocity_particle = np.array(velocity_particle)
 
-    # get the velocity of particles in radius
-    vel_in_r = np.array(particles_in_radius(position_particle, position_particles, velocities_particles)[0])
+    # If using the Vicsek Model get velocity of particles in radius
+    if model == "SVM":
+        vel_in_r = np.array(particles_in_radius(position_particle, position_particles, velocities_particles)[0])
+
+    # If using kNN neighbours get the velocity of k nearest neighbours
+    if model == "kNN":
+        vel_in_r = np.array(k_particles(position_particle, position_particles, velocities_particles)[0])
 
     # get the average value of that velocity
     vel_wanted = np.mean(vel_in_r, axis = 0)
@@ -797,6 +808,48 @@ def particles_in_radius(position_particle, position_particles, velocities_partic
 
 
     return velocities_within_r, positions_within_r
+
+def k_particles(chosen_particle, positions, velocities):
+    """
+    Checks and records the k closest particles of chosen_particle.
+    Returns the velocities and positions of those k particles.
+    """
+
+
+    # array with all indecies of all k particles for positions
+    positions_k = []
+    velocities_k = []
+
+    # array of new distances considering boundary conditions
+    new_distances = []
+
+    # check over all particles in positions
+    for index in range(N):
+
+        distance_x, distance_y = per_boun_distance(chosen_particle, positions[index])
+
+        # distance from selected particle to particle with index
+        d = np.sqrt(distance_x**2 + distance_y**2)
+
+        # append this distance to array of distances
+        new_distances.append(d)
+
+    # Now we need a sorting algorithm (merge)
+    for j in range(k+1):
+        low = min(new_distances)
+
+        index_k = new_distances.index(low)
+
+        # get the index of the particle for velocity
+        velocities_k.append(velocities[index_k])
+
+        # get the index of the particle for position
+        # and add position to all positions within r
+        positions_k.append(positions[index_k])
+
+        new_distances.pop(index_k)
+
+    return velocities_k, positions_k
 
 def get_com(particle_positions):
     """
