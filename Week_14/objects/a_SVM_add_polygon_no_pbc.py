@@ -83,8 +83,6 @@ def one_run(plot = False):
     # update the position for 10 times
     for i in range(U):
 
-        print("\n{}\n".format(i))
-
         # call update to get the new positions of the particles
         positions, velocities = update_system(positions, velocities, accelerations, positions_obj, positions_polygons)
 
@@ -242,8 +240,6 @@ def update_position(position, velocity, polygons):
         # append to the new_position and velocity list this position/velocity
         new_pos.append(pos_i)
 
-    # function to check if it is within object
-    new_pos = list(if_particle_in_object(new_pos, position, polygons))
 
     return new_pos
 
@@ -864,35 +860,12 @@ def rescale(magnitude, vector):
     # get the magnitude
     mag = np.sqrt(vec.dot(vec))
 
-    print("velocity: {}".format(vector))
-
     # multiply to rescale and make it a list
     new_vec = (magnitude / mag) * vec
     new_vec = list(new_vec)
 
     return new_vec
 
-def if_particle_in_object(particle, previous_particle, polygons):
-    """
-    Checks if the particle is inside any of the objects.
-    Return correct position if it is.
-    """
-
-    # loop through polygons
-    for polygon in polygons:
-        # make them shapely objects
-        poly_1 = Polygon(polygon)
-        point = Point(particle)
-
-        # check if point is inside polygon
-        inside = point.within(poly_1)
-
-
-        if inside == True:
-            particle = previous_particle
-            # print("new position: {}".format(particle))
-
-    return particle
 
 def per_boun_distance(i, j):
     """
