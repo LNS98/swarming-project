@@ -2,24 +2,26 @@
 Program built to investiagte coding up the physics of object colliding.
 """
 
-
 import numpy as np
 import random
 import math
-import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.path as mpltPath
 import matplotlib.cm as cm
+from shapely.geometry import LineString, Point, LinearRing, Polygon
+from shapely.ops import split
 import time
 
 # constants used in the program
-L = 5 # size of the box
-N = 100  # number of particles
-M = 0   # number of objects
+bound_cond = True   # set the boundry conditions on or off
+L = 10  # size of the box
+N = 2  # number of particles
+M = 1   # number of objects
 v_mag = 0.05      # total magnitude of each particle velocity
 delta_t = 1     # time increment
 mass_par = 1 # masss of the particles
-mass_object = 100 # masss of the particles
-noise = 2  # noise added to the acceleration
+mass_object = 10 # masss of the particles
+noise = 0  # noise added to the acceleration
 
 # distance metrics in the code
 r = 1.0   # radius of allignment
@@ -27,27 +29,26 @@ r_c = 0.2 # radius within repulsion
 r_e = 0.5 # radius of equilibrium between the particles
 r_a = 0.8 # radius when attraction starts
 r_o = 0.05 # radius of attraction between the particels and the objects
-k = 18 # number of nearest neighbours
 
-# force parameters
+# force parrameters
 alpha = 0 # stregnth of repulsive force due to the particles
 beta = 0 # stregnth of the force due to the objects
-gamma = 1 # stregnth of allignment
+gamma = 0 # stregnth of allignment
 
-# picking a model
-model = "SVM" # select SVM for standard Vicsek Model and kNN for nearest neighbours
-
-U = 100   # number of updates
->>>>>>> bda41b3de7571103422dfa96770357dc8a450bdd
+U = 300   # number of updates
 dimensions = 2   # dimensions
 time_pause = 0.001 # time pause for interactive graph
 
 
 
+
 def main():
 
-    average_noise_allignment(5, "k_density")
->>>>>>> bda41b3de7571103422dfa96770357dc8a450bdd
+    # make 1 complete run of the system
+    ali_end, SD_list = one_run(plot = True)
+    print("alignment: {}".format(ali_end))
+
+    SD_graph(SD_list)
 
     return 0
 
@@ -58,193 +59,71 @@ def one_run(plot = False):
     One simulation of a total run by the system.
     """
 
+    # produce the polygons (verticeies of the polygon)
+    positions_polygons = [polygon() for i in range(M)]
+
     # fill up a box with particles and objects
     positions, velocities, accelerations = pop_box()
-    positions_obj, velocities_obj, accelerations_obj = objects()
+    # MAYBE MAKE THIS POP_OBJECTS
+    # returns positions, velocities, accelerations of com of objects
+    positions_obj, velocities_obj, accelerations_obj = objects(positions_polygons)
 
     # append the positions to the positions over time
     pos_part_over_t = [positions]
     vel_part_over_t = [velocities]
     pos_obj_over_t = [positions_obj]
+    pos_poly_over_t = [positions_polygons]
     vel_obj_over_t = [velocities_obj]
 
+    # get the allignment
     align_start = allignment(velocities)
 
-    ali_array = []
+    # make a list which will contain the sum of distance fromt the centre
+    SD_list = []
 
     # update the position for 10 times
     for i in range(U):
 
         # call update to get the new positions of the particles
-        positions, velocities = update_system(positions, velocities, accelerations, positions_obj)
+        positions, velocities = update_system(positions, velocities, accelerations, positions_obj, positions_polygons)
 
         # update the positions of the objects
-        positions_obj, velocities_obj = update_system_object(positions_obj, velocities_obj, accelerations_obj,
+        positions_polygons, positions_obj, velocities_obj = update_system_object(positions_polygons, positions_obj, velocities_obj, accelerations_obj,
                                                                      positions, velocities)
 
+        print(len(positions_obj))
         # append in positions over time
         pos_part_over_t.append(positions)
         vel_part_over_t.append(velocities)
         pos_obj_over_t.append(positions_obj)
+        pos_poly_over_t.append(positions_polygons)
         vel_obj_over_t.append(velocities_obj)
 
-        ali_array.append(allignment(velocities))
+        # get the SD for this loop
+        SD = SD_COM(positions)
+        SD_list.append(SD)
+
     align_end = allignment(velocities)
 
     # plot the movment of the particles if plot is set to true
     if plot == True:
-        show_path_2D(U - U, U, pos_part_over_t, pos_obj_over_t, clear = True)
+        show_path_2D(U - U, U, pos_part_over_t, pos_poly_over_t, pos_obj_over_t, clear = True)
 
+    return align_end, SD_list
 
-    return align_end
+# ----------------------- Building the objects Functions ---------------------------------
 
-def variation(type):
+def polygon():
     """
-    calcualtes the allignment of the systems for different values of the noise/density.
+    Define the polygon from the points on the verticies.
     """
+    # regular polygon for testing
+    # lenpoly = 5
+    # polygon = np.array([[random.random() + L/2, random.random() + L/2] for x in range(4)])
 
-    # create a list containg the values of noise tested
-    noise_list = list(np.linspace(0, 5, num = 20))
-    density_list = list(np.linspace(0.0001, 3, num = 15)) + list(np.linspace(3.5, 10, num = 5))
-    k_list = [i for i in range(20)]
-    # L_list = [3.1, 5, 10, 31.6, 50]
-    # N = [40, 100, 400, 4000, 10000]
+    polygon =[[L/2 - 1, L/2 - 1], [L/2 + 1, L/2 - 1], [L/2 + 1, L/2 + 1], [L/2 - 1, L/2 + 1]]
 
-    ali_list = []
-
-    if type == "noise":
-
-        # for each value in list run main funciton
-        for no in noise_list:
-            # change the noise to new value of noise for the global variable noise
-            global noise
-            noise = no
-            # get the allignnment from the main funciton
-            all = one_run()
-
-            # append this to the all_list
-            ali_list.append(all)
-
-        return noise_list, ali_list
-
-    if type == "density":
-        # for each value in list run main funciton
-        for density in density_list:
-            # change the noise to new value of noise for the global variable noise
-            global L
-            L = (N / density) ** (1 / 2)
-            # get the allignnment from the main funciton
-            all = one_run()
-
-            # append this to the all_list
-            ali_list.append(all)
-
-        return density_list, ali_list
-
-    if type == "k_density":
-        # for each value in list run main funciton
-        for k_value in k_list:
-            # change the noise to new value of noise for the global variable noise
-            global k
-            k = k_value
-            # get the allignnment from the main funciton
-            all = one_run()
-
-            # append this to the all_list
-            ali_list.append(all)
-
-        return k_list, ali_list
-    else:
-        print("not the correct 'type' given, try 'noise' or 'density'.")
-        return None
-
-def average_noise_allignment(n_times, type):
-    """
-    Create a file of ongoing repeats for the given 'type' of average.
-    """
-
-    # list with values of nosie, L and N
-    noise_list = list(np.linspace(0, 5, num = 20))
-    density_list = list(np.linspace(0.0001, 3, num = 15)) + list(np.linspace(3.5, 10, num = 5))
-    k_list = [i for i in range(20)]
-
-    if type == "noise":
-        corr_list = noise_list
-    if type == "density":
-        corr_list = density_list
-    if type == "k_density":
-        corr_list = k_list
-
-    # for each repeat, add new allignment values to old allignment values
-    for repeat in range(n_times):
-
-        # read in data from file if file exists
-        try:
-            # read in csv as dataframe
-            df = pd.read_csv("./averages_{}_{}/N_{}.csv".format(type, model, N))
-            average_number = len(df.columns) - 1
-
-        except IOError as e:
-            # set the current averages to the number of repeats
-            average_number = 0
-            df = pd.DataFrame({type: corr_list})
-            # df.to_csv("./averages_{}/N_{}.csv".format(type, N))
-
-
-        # generate new allignment values
-        al_list = variation(type)[1]
-
-        # convert the average allignment to a df and the noises as well
-        d = {"average_{}".format(average_number): al_list}
-        df_new = pd.DataFrame(data = d)
-
-        # print(df.head())
-        # print(df_new.head())
-        # concate this with old array
-        df_w = pd.concat([df, df_new], axis=1, join='inner')
-
-        # write it to csv file
-        df_w.to_csv("./averages_{}_{}/N_{}.csv".format(type, model, N), index = False)
-
-    return None
-
-def run_to_get_averages(n_times):
-    """
-    Run this function to get the averages for each of the different setups
-    (defined below) for 'n_times' repeats plotted on the same graph.
-    """
-    global N, L, U
-    # initalise the differnt values of L and N that are needed
-    # L_list = [3.1, 5, 10, 31.6, 50]
-    # N_list = [40, 100, 400, 4000, 10000]
-    # U_best = [80, 200, 300, 800, 1500]
-
-    L_list = [3.1, 5]
-    N_list = [40, 100]
-    U_best = [80, 200]
-
-    # loop over the values in the lists above
-    for i in range(len(L_list)):
-        # change the values of L and N to the ones from the list
-        N = N_list[i]
-        L = L_list[i]
-        U = U_best[i]
-
-        # check the time of the program
-        start = time.time()
-
-        # run the average function n_times
-        average_noise_allignment(n_times)
-
-        # time after the function
-        end = time.time()
-        print("\n-------- time of program: {} -------------\n".format(end - start))
-
-    #show the scatter plot
-    #plt.show()
-
-    return None
-
+    return polygon
 
 # ----------------------- System Functions ---------------------------------
 
@@ -260,7 +139,7 @@ def pop_box():
 
     for i in range(N):
         # lsit containing positions and velocities at random
-        init_position = [random.uniform(0, L) for i in range(dimensions)]
+        init_position = [random.choice([random.uniform(0, L/2 - 1), random.uniform(L/2 + 1, L)]) for i in range(dimensions)] # IMPROVE
         init_velocity = [random.uniform(-1, 1) for i in range(dimensions)]
         init_acceleration = [0 for i in range(dimensions)]
 
@@ -271,9 +150,9 @@ def pop_box():
 
     return positions, velocities, accelerations
 
-def objects():
+def objects(polygons):
     """
-    Create a set of M objects, defining them just by there  centre of mass.
+    Create a set of M objects, defining them just by there centre of mass.
     As of now they are basically particles of different species.
     """
 
@@ -284,8 +163,8 @@ def objects():
 
     for i in range(M):
         # lsit containing positions and velocities at random
-        init_position = [random.uniform(0, L) for i in range(dimensions)]
-        init_velocity = [0 for i in range(dimensions)]
+        init_position = get_com(polygons[i]).tolist()
+        init_velocity = [0.03, 0]
         init_acceleration = [0 for i in range(dimensions)]
 
         # append the positions to the bigger lists
@@ -294,29 +173,9 @@ def objects():
         accelerations.append(init_acceleration)
 
     return positions, velocities, accelerations
-
-def periodic_boundaries(position):
-    """
-    If particle is over the limit of the box run this function and it will return
-    the correct position of the particle.
-    """
-    global L
-
-    # check if its under 0
-    if position < 0:
-        return position + L
-
-    # if its over L
-    elif position > L:
-        return position - L
-
-    # otherwise just return the position
-    else:
-        return position
-
 # ----------------------- Update Functions for particles --------------------
 
-def update_system(positions, velocities, accelerations, positions_obj):
+def update_system(positions, velocities, accelerations, positions_obj, polygons):
     """
     Updates the positons and velocities of ALL the particles in a system.
     """
@@ -327,7 +186,7 @@ def update_system(positions, velocities, accelerations, positions_obj):
     # loop through each index in the positions, vel, acc
     for i in range(N):
         # get the acceleration based on the positions of the particles
-        acceleration = update_acceleration(positions[i], velocities[i], positions, velocities, positions_obj)
+        acceleration = update_acceleration(positions[i], velocities[i], positions, velocities, positions_obj, polygons)
         # call update to get the new value
         new_vel = update_velocity(velocities[i], acceleration)
         new_pos = update_position(positions[i], new_vel)
@@ -349,7 +208,10 @@ def update_position(position, velocity):
 
         # add the velocity in that dimension to the position (times delta_t)
         pos_i = position[i] + velocity[i] * delta_t
-        pos_i = periodic_boundaries(pos_i)
+
+        # chek for boundry conditions
+        if bound_cond == True:
+            pos_i = periodic_boundaries(pos_i)
 
         # append to the new_position and velocity list this position/velocity
         new_pos.append(pos_i)
@@ -366,7 +228,7 @@ def update_velocity(velocity, acceleration):
     # loop through the dimensions in position
     for i in range(dimensions):
         # update the velocity first
-        v_i = velocity[i] + acceleration[i] * delta_t # + noise
+        v_i = velocity[i] + acceleration[i] * delta_t
 
         # append to the new_position and velocity list this position/velocity
         new_vel.append(v_i)
@@ -379,9 +241,9 @@ def update_velocity(velocity, acceleration):
 
     return new_vel
 
-def update_acceleration(position_particle, velocity_particle, position_particles, velocity_particles, positions_obj):
+def update_acceleration(position_particle, velocity_particle, position_particles, velocity_particles, positions_obj, polygons):
     """
-    Algorithm which updates the acceleration of each particle
+    Algorithm which updates the algorithm
     """
     # define two inital forces dependent on the particles and on hte object
     force_object = np.array([0., 0.])
@@ -391,34 +253,35 @@ def update_acceleration(position_particle, velocity_particle, position_particles
     for particle in position_particles:
         if particle == position_particle:
             continue
-        force_particles += chate_rep_att_force(position_particle, particle)
+        force_particles += 0 #chate_rep_att_force(position_particle, particle)
 
     # calcualte force due to the objects
-    for object in positions_obj:
-        force_object += obj_repulsive_force(position_particle, object)
+    for object in range(len(positions_obj)):
+        force_object += 0 #contact_force_particle(polygons[object], positions_obj[object], velocity_particle, position_particle)
 
 
     new_acceleration = (alpha * force_particles + beta * force_object +
     gamma * allignment_force(position_particle, velocity_particle, position_particles, velocity_particles)) / mass_par
 
-
-
     return new_acceleration
 
 # ----------------------- Update Functions for objects ------------------------------
 
-def update_system_object(positions_obj, velocities_obj, accelerations_obj, position_particles, velocity_particles):
+def update_system_object(polygons, positions_obj, velocities_obj, accelerations_obj, position_particles, velocity_particles):
     """
-    Updates the positons and velocities of ALL the particles in a system.
+    Updates the positons and velocities of ALL the objects in a system.
     """
     # lists which will contain the updated values
     new_positions = []
     new_vels = []
+    new_polygons = []
 
     # loop through each index in the positions, vel, acc
     for i in range(len(positions_obj)):
+        # update centre of Mass
+
         # get the acceleration based on the positions of the particles
-        acceleration = update_acceleration_object(positions_obj[i], positions_obj, position_particles, velocity_particles)
+        acceleration = update_acceleration_object(polygons[i], positions_obj[i], positions_obj, position_particles, velocity_particles)
         # call update to get the new value
         new_vel = update_velocity_object(velocities_obj[i], acceleration)
         new_pos = update_position_object(positions_obj[i], new_vel)
@@ -426,7 +289,18 @@ def update_system_object(positions_obj, velocities_obj, accelerations_obj, posit
         new_positions.append(new_pos)
         new_vels.append(new_vel)
 
-    return new_positions, new_vels
+        # update the position of the verticies
+        #if it is out of boundary condiitons
+        new_vers, new_pol = update_position_object_vertex(polygons[i], new_vel)
+
+        new_polygons.append(new_vers)
+
+        if new_pol != None:
+            new_polygons.append(new_pol)
+            new_positions.append(get_com(new_pol).tolist())
+            new_vels.append(new_vel)
+
+    return new_polygons, new_positions, new_vels
 
 def update_position_object(positions_obj, velocities_obj):
     """
@@ -440,8 +314,10 @@ def update_position_object(positions_obj, velocities_obj):
 
         # add the velocity in that dimension to the position (times delta_t)
         pos_i = positions_obj[i] + velocities_obj[i] * delta_t
-        # print(positions_obj[i], velocities_obj[i], pos_i)
-        pos_i = periodic_boundaries(pos_i)
+
+        # # chek for boundry conditions
+        # if bound_cond == True:
+        #     pos_i = periodic_boundaries(pos_i)
 
         # append to the new_position and velocity list this position/velocity
         new_pos.append(pos_i)
@@ -465,42 +341,144 @@ def update_velocity_object(velocities_obj, accelerations_obj):
 
     return new_vel
 
-def update_acceleration_object(position_obj, positions_obj, position_particles, velocity_particles):
+def update_acceleration_object(polygon, position_obj, positions_obj, position_particles, velocity_particles):
     """
-    Algorithm which updates the algorithm
+    Algorithm which updates the acceleration of the com of the object
     """
     # define two inital forces dependent on the particles and on hte object
     force_object = np.array([0., 0.])
     force_particles = np.array([0., 0.])
 
     # loop through each particle and calculate the repulsive force from the particle
-    for particle in position_particles:
-        force_particles += obj_repulsive_force(position_obj, particle)
+    for particle in range(len(position_particles)):
+        force_particles +=  0#contact_force_object(polygon, position_obj, velocity_particles[particle],position_particles[particle])
 
     # calcualte force due to the objects
+
     for object in positions_obj:
         if object == position_obj:
             continue
-        force_object += obj_repulsive_force(position_obj, object)
+        force_object += 0 #obj_repulsive_force(position_obj, object)
 
     new_acceleration = (beta * force_particles + alpha * force_object) / mass_object
 
     return new_acceleration
 
+def update_position_object_vertex(polygon, velocities_obj):
+    """
+    Update the location of a particle and returns the new location.
+    """
+
+    # get the points of the polygon to plot it
+    polygon = np.array(polygon)
+    x, y = polygon.T
+
+    # add the velocity in that dimension to the position (times delta_t)
+    new_x = x + velocities_obj[0] * delta_t
+    new_y = y + velocities_obj[1] * delta_t
+
+    # reconvert to the polygon form
+    new_pos = np.array([list(new_x), list(new_y)]).T.tolist()
+
+    new_pos_2 = periodic_boundaries_object(new_pos)
+
+    if new_pos == new_pos_2:
+        return new_pos, None
+    else:
+        return new_pos, new_pos_2
+
 # ----------------------- Forces Functions ------------------------------
+
+def contact_force_object(polygon, position_obj, velocity_particle, position_particle):
+    """
+    Contact force between object and particle.
+    """
+
+    # make the polygon a linear ring
+    poly = LinearRing(polygon)
+    # create a particle moving straight down
+    point = Point(position_particle)
+
+    # get the distance between the object and the particle
+    dist = point.distance(poly)
+
+    if dist > 0.1:
+        return np.array([0, 0])
+
+    d = poly.project(point)
+    p = poly.interpolate(d)
+    closest_point = list(p.coords)[0]
+
+    # now you have the points, try to get the vecetor normal to the plane
+    n = rescale(1, [position_particle[0] - closest_point[0], position_particle[1] - closest_point[1]])
+
+    # get the value of n, the normalised normal vector to the surface of reflection
+    n = np.array(n)
+    v_1 = np.array(velocity_particle)
+
+    # calcualte the wanted velocity for the velocity after reflection
+    v_2 = -(2 * (np.dot(v_1, n)) * n - v_1)
+
+    Force = v_2 - v_1
+
+
+    return - Force
+
+def contact_force_particle(polygon, position_obj, velocity_particle, position_particle):
+    """
+    Contact force between object and particle.
+    """
+
+    # make the polygon a linear ring
+    poly = LinearRing(polygon)
+    # create a particle moving straight down
+    point = Point(position_particle)
+
+    # get the distance between the object and the particle
+    dist = point.distance(poly)
+
+    if dist > 0.1:
+        return np.array([0, 0])
+
+    d = poly.project(point)
+    p = poly.interpolate(d)
+    closest_point = list(p.coords)[0]
+
+    # now you have the points, try to get the vecetor normal to the plane
+    n = rescale(1, [position_particle[0] - closest_point[0], position_particle[1] - closest_point[1]])
+
+    # get the value of n, the normalised normal vector to the surface of reflection
+    n = np.array(n)
+    v_1 = np.array(velocity_particle)
+
+    # calcualte the wanted velocity for the velocity after reflection
+    v_2 = -(2 * (np.dot(v_1, n)) * n - v_1)
+
+    Force = v_2 - v_1
+
+
+    return Force
 
 def obj_repulsive_force(i, j):
     """
-    calculates the force used in the repulsive_force function.
+    calculates the force used in the repulsive_force function. As per chate 2008
     """
-    # calculate the distance between the points
-    distance_x, distance_y = per_boun_distance(i, j)
+    if bound_cond == True:
+        # calculate the distance between the points
+        distance_x, distance_y = per_boun_distance(i, j)
+        # calcualte the magnitude of the distance between the points
+        distance = (distance_x ** 2 + distance_y ** 2) ** (1/2)
 
-    # calcualte the magnitude of the distance between the points
-    distance = (distance_x ** 2 + distance_y ** 2) ** (1/2)
+    else:
+        distance_x, distance_y = j[0] - i[0], j[1] - i[1]
+        distance = distance_fun(i, j)
 
-    # magnitude of force
-    magnitude = -1 /(1 + math.exp(distance/ r_o))
+    try:
+        # magnitude of force
+        magnitude = -1 /(1 + math.exp(distance/ r_o))
+
+    except OverflowError as err:
+        magnitude = 0
 
     # get the x direction of the force
     F_x = (magnitude * distance_x) / distance
@@ -514,11 +492,15 @@ def inverse_force(i, j):
     """
     (1/r)^2 repulsive force
     """
-    # calculate the distance between the points
-    distance_x, distance_y = per_boun_distance(i, j)
+    if bound_cond == True:
+        # calculate the distance between the points
+        distance_x, distance_y = per_boun_distance(i, j)
+        # calcualte the magnitude of the distance between the points
+        distance = (distance_x ** 2 + distance_y ** 2) ** (1/2)
 
-    # calcualte the magnitude of the distance between the points
-    distance = (distance_x ** 2 + distance_y ** 2) ** (1/2)
+    else:
+        distance_x, distance_y = j[0] - i[0], j[1] - i[1]
+        distance = distance_fun(i, j)
 
     # magnitude of force
     magnitude = - (1/distance) ** 2
@@ -538,13 +520,8 @@ def allignment_force(position_particle, velocity_particle, position_particles, v
     # convert the velocities to numpy arrays
     velocity_particle = np.array(velocity_particle)
 
-    # If using the Vicsek Model get velocity of particles in radius
-    if model == "SVM":
-        vel_in_r = np.array(particles_in_radius(position_particle, position_particles, velocities_particles)[0])
-
-    # If using kNN neighbours get the velocity of k nearest neighbours
-    if model == "kNN":
-        vel_in_r = np.array(k_particles(position_particle, position_particles, velocities_particles)[0])
+    # get the velocity of particles in radius
+    vel_in_r = np.array(particles_in_radius(position_particle, position_particles, velocities_particles)[0])
 
     # get the average value of that velocity
     vel_wanted = np.mean(vel_in_r, axis = 0)
@@ -559,12 +536,16 @@ def chate_rep_att_force(i, j):
     Attractive and repulsive force between the particles as described in the
     chate paper 2003.
     """
+    # check for bounfy conditions
+    if bound_cond == True:
+        # calculate the distance between the points
+        distance_x, distance_y = per_boun_distance(i, j)
+        # calcualte the magnitude of the distance between the points
+        distance = (distance_x ** 2 + distance_y ** 2) ** (1/2)
 
-    # calculate the distance between the points
-    distance_x, distance_y = per_boun_distance(i, j)
-
-    # calcualte the magnitude of the distance between the points
-    distance = (distance_x ** 2 + distance_y ** 2) ** (1/2)
+    else:
+        distance_x, distance_y = j[0] - i[0], j[1] - i[1]
+        distance = distance_fun(i, j)
 
     # if distance smaller than r_c
     if distance < r_c:
@@ -640,9 +621,25 @@ def allignment(velocities):
 
     return v_a
 
+def SD_COM(position_particles):
+    """
+    Calcualte the sum of scalar distance of all the particles from the centre of mass of
+    the particles.
+    """
+
+    # calculate the centre of mass of the object
+    com = get_com(position_particles)
+
+    sum = 0
+    # loop over each particle in the positions
+    for particle in position_particles:
+        sum += distance_fun(particle, com)
+
+    return sum
+
 # ----------------------- Visualise Functions ------------------------------
 
-def show_path_2D(start, end, coordinates, coordinates_object, clear = True):
+def show_path_2D(start, end, coordinates, polygons, polygons_com, clear = True):
     """
     Function which takes in the coordinates as described in straight_particle and
     plots the result on a scatter graph.
@@ -667,10 +664,25 @@ def show_path_2D(start, end, coordinates, coordinates_object, clear = True):
 
             # plot the object
             if i < M:
-                # plt.plot(verticies[0] , verticies[1])
-                plt.scatter(coordinates_object[time_step][i][0], coordinates_object[time_step][i][1], s = 8, color = 'g')
+                polygon = np.array(polygons[time_step][i])
+                # get the points of the polygon to plot it
+                x, y = polygon.T
 
-            plt.axis([0, L, 0, L])
+                # print(x, y)
+
+                x = np.append(x, x[0])
+                y = np.append(y, y[0])
+
+                # print(x, y)
+
+                # plot the polygon
+                plt.plot(x , y)
+                plt.scatter(polygons_com[time_step][i][0], polygons_com[time_step][i][1], s = 5, color = 'g')
+
+            if bound_cond == True:
+                plt.axis([0, L, 0, L])
+            plt.axis([0, L + 2, 0, L + 2])
+            # plt.axis([-L*2, L*2, -L*2, L*2])
 
         # show graph
         plt.show()
@@ -700,9 +712,24 @@ def phase_transition(order_parameter_values, control_parameter_values):
     # plot the order parameter on the y axis and the control on the x
     plt.scatter(control_parameter_values, order_parameter_values,
                 s = 2, label = "N = {}, L = {}".format(N, L))
-    # plt.xlabel("nosie") # these should be changed for other parameters
-    # plt.ylabel("allignment") # these should be changed for other parameters
+    plt.xlabel("nosie") # these should be changed for other parameters
+    plt.ylabel("allignment") # these should be changed for other parameters
     plt.legend()
+    plt.show()
+
+    return None
+
+def SD_graph(SD_list):
+    """
+    Graph the results of the sum of distances.
+    """
+    # get the x values, the timesteps
+    x = [i for i in range(U)]
+
+    # plot the results
+    plt.scatter(x, SD_list, s = 3)
+    plt.xlabel("Time Step")
+    plt.ylabel("Sum of Distance from Centre of Mass")
     plt.show()
 
     return None
@@ -722,8 +749,6 @@ def particles_in_radius(position_particle, position_particles, velocities_partic
     # array with all indecies of all particles within range for positions
     positions_within_r = []
 
-
-
     # check over all particles in positions
     for index in range(N):
         # variable used to aid if its in radius
@@ -732,11 +757,12 @@ def particles_in_radius(position_particle, position_particles, velocities_partic
         # check if it is smaller than the radius in all
         for i in range(dimensions):
 
-            inside_distance = abs(position_particle[i] - position_particles[index][i])
-
-            wrap_distance = L-inside_distance
-
-            distance = min(inside_distance, wrap_distance)
+            if bound_cond == True:
+                inside_distance = abs(position_particle[i] - position_particles[index][i])
+                wrap_distance = L-inside_distance
+                distance = min(inside_distance, wrap_distance)
+            else:
+                distance = abs(position_particle[i] - position_particles[index][i])
 
             # if the size is over then break out of loop as it won't be in radius
             if distance > r:
@@ -755,47 +781,46 @@ def particles_in_radius(position_particle, position_particles, velocities_partic
 
     return velocities_within_r, positions_within_r
 
-def k_particles(chosen_particle, positions, velocities):
+def get_com(particle_positions):
     """
-    Checks and records the k closest particles of chosen_particle.
-    Returns the velocities and positions of those k particles.
+    Get the centre of mass of the particles given
     """
+    # the centre of mass is just the average in each dimension
 
+    # array containing which will contain the com
+    com = []
+    number_of_particles = len(particle_positions)
 
-    # array with all indecies of all k particles for positions
-    positions_k = []
-    velocities_k = []
+    # loop over each dimension
+    for i in range(dimensions):
+        # sum variable for the given dimensions
+        sum_i = 0
 
-    # array of new distances considering boundary conditions
-    new_distances = []
+        # loop over each particle
+        for particle in range(number_of_particles):
+            sum_i += particle_positions[particle][i]
 
-    # check over all particles in positions
-    for index in range(N):
+        # now average the sum over N and append to the com
+        sum_i = sum_i / number_of_particles
+        com.append(sum_i)
 
-        distance_x, distance_y = per_boun_distance(chosen_particle, positions[index])
+    return np.array(com)
 
-        # distance from selected particle to particle with index
-        d = np.sqrt(distance_x**2 + distance_y**2)
+def distance_fun(pos1, pos2):
+    """
+    Calculate the distance between the points
+    """
+    # get the two arrays as np arrays, easier to do calculations
+    pos1 = np.array(pos1)
+    pos2 = np.array(pos2)
 
-        # append this distance to array of distances
-        new_distances.append(d)
+    # get the distance
+    distance = pos2 - pos1
 
-    # Now we need a sorting algorithm (merge)
-    for j in range(k+1):
-        low = min(new_distances)
+    # distance is the same as the magnitude
+    dist = np.sqrt(distance.dot(distance))
 
-        index_k = new_distances.index(low)
-
-        # get the index of the particle for velocity
-        velocities_k.append(velocities[index_k])
-
-        # get the index of the particle for position
-        # and add position to all positions within r
-        positions_k.append(positions[index_k])
-
-        new_distances.pop(index_k)
-
-    return velocities_k, positions_k
+    return dist
 
 def angle_to_xy(magnitude, angle):
     """
@@ -824,6 +849,56 @@ def rescale(magnitude, vector):
 
     return new_vec
 
+def periodic_boundaries(position):
+        """
+        If particle is over the limit of the box run this function and it will return
+        the correct position of the particle.
+        """
+        global L
+
+        # check if its under 0
+        if position < 0:
+            return position + L
+
+            # if its over L
+        elif position > L:
+            return position - L
+
+            # otherwise just return the position
+        else:
+            return position
+
+def periodic_boundaries_object(polygon):
+    """
+    Account for the boundary conditions of the object
+    """
+
+    # if any of the verticies is past L or 0
+    # duplicate the object at the respictive boundary point (to figure  out)
+    # the two objects have to be linked: any force experienced by object 1 must be experienced by object 2 and vice et versa
+    # once all the verticies are beyond L (or 0) delete the objcect.
+
+    # make np array from normal list
+    num_verticies = len(polygon)
+    polygon = np.array(polygon)
+
+    L_x = np.array([[L, 0] for i in range(num_verticies)])
+    # L_y = np.array([[0, L] for i in range(num_verticies)])
+
+    if np.any(polygon[:, 0] > L):
+        polygon = polygon - L_x
+
+    if np.any(polygon[:, 0] < 0):
+        polygon = polygon + L_x
+
+    # if np.any(polygon[:, 1] > L):
+    #     polygon = polygon - L_y
+    #
+    # if np.any(polygon[:, 1] < 0):
+    #     polygon = polygon + L_y
+
+    return polygon.tolist()
+
 def per_boun_distance(i, j):
     """
     Calculates the minimum distance  between two particles in a box with periodic
@@ -842,23 +917,22 @@ def per_boun_distance(i, j):
 
     return distance_x, distance_y
 
+# ----------------------- Test functins  Functions ------------------------------
+
+
 def help():
     """
     Funciton used for different reasons.
     """
-    d1 = {"a": [i for i in range(10)], "b": [2*i for i in range(10)], "c": [-i for i in range(10)]}
-    d2 = {"d": [i for i in range(10)], "e": [2*i for i in range(10)], "f": [-i for i in range(10)]}
 
-    df1 = pd.DataFrame(data = d1)
-    df2 = pd.DataFrame(data = d2)
+    # get a polygon
+    poly_list = [polygon()]
+    periodic_boundaries_object(poly_list)
 
-    df3 = pd.concat([df1, df2], axis=1, join='inner')
+    poly_list.append()
 
-    print(df1)
-    print("\n")
-    print(df2)
-    print("\n")
-    print(df3)
+    print(poly_list)
+
 
     return None
 

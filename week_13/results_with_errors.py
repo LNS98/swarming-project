@@ -30,8 +30,4 @@ def main(type, model, N, folder, name_of_file):
     return 0
 
 
-<<<<<<< HEAD
-main("k_density", "kNN", 100, "kNN_model", "varying_k_N_100")
-=======
 main("density", "SVM", 100, "SVM", "density_averages_N100")
->>>>>>> bda41b3de7571103422dfa96770357dc8a450bdd
