@@ -35,7 +35,7 @@ beta = 0 # stregnth of the force due to the objects
 gamma = 1 # stregnth of allignment
 
 # picking a model
-model = "SVM" # select SVM for standard Vicsek Model and kNN for nearest neighbours
+model = "kNN" # select SVM for standard Vicsek Model and kNN for nearest neighbours
 
 U = 250   # number of updates
 dimensions = 2   # dimensions
