@@ -12,14 +12,23 @@ import matplotlib.cm as cm
 import time
 
 # constants used in the program
+<<<<<<< HEAD
 L = 3.1  # size of the box
 N = 40  # number of particles
+=======
+L = 5  # size of the box
+N = 100  # number of particles
+>>>>>>> 53d4c54b8d5e3948ec9d715496ca24e36dba1243
 M = 0   # number of objects
 v_mag = 0.05      # total magnitude of each particle velocity
 delta_t = 1     # time increment
 mass_par = 1 # masss of the particles
 mass_object = 100 # masss of the particles
+<<<<<<< HEAD
 noise = 0.5  # noise added to the acceleration
+=======
+noise = 0  # noise added to the acceleration
+>>>>>>> 53d4c54b8d5e3948ec9d715496ca24e36dba1243
 
 # distance metrics in the code
 r = 1.0   # radius of allignment
@@ -37,7 +46,8 @@ gamma = 1 # stregnth of allignment
 # picking a model
 model = "SVM" # select SVM for standard Vicsek Model and kNN for nearest neighbours
 
-U = 800   # number of updates
+U = 700   # number of updates
+Y = 400  # steady state value for the system
 dimensions = 2   # dimensions
 time_pause = 0.001 # time pause for interactive graph
 
@@ -45,7 +55,14 @@ time_pause = 0.001 # time pause for interactive graph
 
 def main():
 
+<<<<<<< HEAD
     one_run(plot2 = True)
+=======
+
+    one_run(plot2 = True)
+
+    # time_averages_alignment("density")
+>>>>>>> 53d4c54b8d5e3948ec9d715496ca24e36dba1243
 
     return 0
 
@@ -92,7 +109,8 @@ def one_run(plot1 = False, plot2 = False):
         averages_list.append(average)
         U_list.append(i)
 
-        if U > 60: for_total_average.append(average)
+        if i >= Y:
+            for_total_average.append(average)
 
     align_end = allignment(velocities)
 
@@ -104,12 +122,12 @@ def one_run(plot1 = False, plot2 = False):
         # plot average neighbours for each time step
         plot_average_neighbours(averages_list, U_list)
 
-    np_average = np.array(for_total_average)
-    mean = np.mean(np_average)
+    # np_average = np.array(for_total_average)
+    # mean = np.mean(np_average)
 
-    return align_end, mean
+    return align_end, for_total_average
 
-def variation(type):
+def variation(type, start):
     """
     calcualtes the allignment of the systems for different values of the noise/density.
     """
@@ -123,45 +141,81 @@ def variation(type):
     neighbours_list = []
 
     if type == "noise":
+        list_col = [type] + [(i + start) for i in range(U - Y)]
+        df = pd.DataFrame(columns = list_col)
 
         # for each value in list run main funciton
-        for no in noise_list:
+        for i, no in enumerate(noise_list):
             # change the noise to new value of noise for the global variable noise
             global noise
             noise = no
 
-            # print("no")
-            # print(no)
             # get the NN from the main funciton
-            all = one_run()[1]
+            averages_list = one_run()[1]
+            d = [no] + averages_list
+            df.loc[i] = d
 
-            # print("average NN for each no")
-            # print(all)
 
-            # append this to the all_list
-            neighbours_list.append(all)
-
-        # print("neighbours_list:")
-        # print(neighbours_list)
-
-        return noise_list, neighbours_list
+        return df
 
     if type == "density":
+        list_col = [type] + [(i + start) for i in range(U - Y)]
+        df = pd.DataFrame(columns = list_col)
+
         # for each value in list run main funciton
-        for density in density_list:
+        for i, density in enumerate(density_list):
             # change the noise to new value of noise for the global variable noise
             global L
             L = (N / density) ** (1 / 2)
-            # get the allignnment from the main funciton
-            all = one_run()[1]
 
-            # append this to the all_list
-            neighbours_list.append(all)
+            # get the NN from the main funciton
+            averages_list = one_run()[1]
+            d = [density] + averages_list
+            df.loc[i] = d
 
-        return density_list, neighbours_list
+
+        return df
+
     else:
         print("not the correct 'type' given, try 'noise' or 'density'.")
         return None
+
+
+def time_averages_alignment(type):
+    """
+    Take in previous dataframe and concatinate it with new results
+    Write it all to a new csv file
+    """
+    # create a list containg the values of noise tested
+    noise_list = list(np.linspace(0, 5, num = 20))
+    density_list = list(np.linspace(0.0001, 3, num = 15)) + list(np.linspace(3.5, 10, num = 5))
+
+
+    if type == "noise":
+        corr_list = noise_list
+
+    if type == "density":
+        corr_list = density_list
+
+    # read in data from file if file exists
+    try:
+        # read in csv as dataframe
+        df = pd.read_csv("./neighbours_variation_with_{}_N{}.csv".format(type, N))
+        average_number = len(df.columns) -1
+
+    except IOError as e:
+        # set the current averages to the number of repeats
+        average_number = 0
+        df = pd.DataFrame({type: corr_list})
+
+    df_new = variation(type, average_number)
+    df_w = pd.merge(df, df_new, on = type)
+
+    print(df_w)
+
+    df_w.to_csv("./neighbours_variation_with_{}_N{}.csv".format(type, N), index = False)
+    return None
+
 
 def average_noise_allignment(n_times, type):
     """

@@ -12,13 +12,8 @@ import matplotlib.cm as cm
 import time
 
 # constants used in the program
-<<<<<<< HEAD
-L = 5 # size of the box
-N = 600  # number of particles
-=======
 L = 100 # size of the box
 N = 100  # number of particles
->>>>>>> 53d4c54b8d5e3948ec9d715496ca24e36dba1243
 M = 0   # number of objects
 v_mag = 0.05      # total magnitude of each particle velocity
 delta_t = 1     # time increment
@@ -32,7 +27,7 @@ r_c = 0.2 # radius within repulsion
 r_e = 0.5 # radius of equilibrium between the particles
 r_a = 0.8 # radius when attraction starts
 r_o = 0.05 # radius of attraction between the particels and the objects
-k = 7 # number of nearest neighbours
+k = 18 # number of nearest neighbours
 
 # force parameters
 alpha = 0 # stregnth of repulsive force due to the particles
@@ -40,13 +35,9 @@ beta = 0 # stregnth of the force due to the objects
 gamma = 1 # stregnth of allignment
 
 # picking a model
-model = "kNN" # select SVM for standard Vicsek Model and kNN for nearest neighbours
+model = "SVM" # select SVM for standard Vicsek Model and kNN for nearest neighbours
 
-<<<<<<< HEAD
-U = 250   # number of updates
-=======
 U = 500   # number of updates
->>>>>>> 53d4c54b8d5e3948ec9d715496ca24e36dba1243
 dimensions = 2   # dimensions
 time_pause = 0.001 # time pause for interactive graph
 
@@ -54,11 +45,7 @@ time_pause = 0.001 # time pause for interactive graph
 
 def main():
 
-<<<<<<< HEAD
     average_noise_allignment(1, "density")
-=======
-    average_noise_allignment(10, "density")
->>>>>>> 53d4c54b8d5e3948ec9d715496ca24e36dba1243
 
     return 0
 

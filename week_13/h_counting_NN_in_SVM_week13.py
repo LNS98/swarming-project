@@ -19,7 +19,7 @@ v_mag = 0.05      # total magnitude of each particle velocity
 delta_t = 1     # time increment
 mass_par = 1 # masss of the particles
 mass_object = 100 # masss of the particles
-noise = 2  # noise added to the acceleration
+noise = 0  # noise added to the acceleration
 
 # distance metrics in the code
 r = 1.0   # radius of allignment
@@ -45,7 +45,7 @@ time_pause = 0.001 # time pause for interactive graph
 
 def main():
 
-    averages_list = one_run(plot1 = False, plot2 = False)[1]
+    averages_list = one_run(plot1 = False, plot2 = True)[1]
     averages_array = np.array(averages_list)
     average = np.mean(averages_array)
 
