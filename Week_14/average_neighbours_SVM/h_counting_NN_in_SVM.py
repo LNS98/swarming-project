@@ -12,14 +12,14 @@ import matplotlib.cm as cm
 import time
 
 # constants used in the program
-L = 10  # size of the box
-N = 400  # number of particles
+L = 3.1  # size of the box
+N = 40  # number of particles
 M = 0   # number of objects
 v_mag = 0.05      # total magnitude of each particle velocity
 delta_t = 1     # time increment
 mass_par = 1 # masss of the particles
 mass_object = 100 # masss of the particles
-noise = 1  # noise added to the acceleration
+noise = 0.5  # noise added to the acceleration
 
 # distance metrics in the code
 r = 1.0   # radius of allignment
@@ -45,7 +45,7 @@ time_pause = 0.001 # time pause for interactive graph
 
 def main():
 
-    average_neighbours_variation(1, "density")
+    one_run(plot2 = True)
 
     return 0
 

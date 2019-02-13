@@ -12,14 +12,14 @@ import matplotlib.cm as cm
 import time
 
 # constants used in the program
-L = 5 # size of the box
-N = 600  # number of particles
+L = 3.1 # size of the box
+N = 40  # number of particles
 M = 0   # number of objects
 v_mag = 0.05      # total magnitude of each particle velocity
 delta_t = 1     # time increment
 mass_par = 1 # masss of the particles
 mass_object = 100 # masss of the particles
-noise = 2  # noise added to the acceleration
+noise = 5  # noise added to the acceleration
 
 # distance metrics in the code
 r = 1.0   # radius of allignment
@@ -35,9 +35,10 @@ beta = 0 # stregnth of the force due to the objects
 gamma = 1 # stregnth of allignment
 
 # picking a model
-model = "kNN" # select SVM for standard Vicsek Model and kNN for nearest neighbours
+model = "SVM" # select SVM for standard Vicsek Model and kNN for nearest neighbours
 
-U = 250   # number of updates
+U = 20000   # total number of updates
+Y = 0 # steady state after which we record time averages
 dimensions = 2   # dimensions
 time_pause = 0.001 # time pause for interactive graph
 
@@ -45,8 +46,8 @@ time_pause = 0.001 # time pause for interactive graph
 
 def main():
 
-    average_noise_allignment(1, "density")
-
+    ali_array = one_run(plot = False)
+    show_allignment_plot([i for i in range(U)], ali_array)
     return 0
 
 # ----------------------- Whole system Functions ---------------------------------
@@ -78,7 +79,7 @@ def one_run(plot = False):
 
         # update the positions of the objects
         positions_obj, velocities_obj = update_system_object(positions_obj, velocities_obj, accelerations_obj,
-                                                                     positions, velocities)
+        positions, velocities)
 
         # append in positions over time
         pos_part_over_t.append(positions)
@@ -86,17 +87,18 @@ def one_run(plot = False):
         pos_obj_over_t.append(positions_obj)
         vel_obj_over_t.append(velocities_obj)
 
-        ali_array.append(allignment(velocities))
-    align_end = allignment(velocities)
+        if i >= Y:
+            # append alignment values to array
+            ali_array.append(allignment(velocities))
+
 
     # plot the movment of the particles if plot is set to true
     if plot == True:
         show_path_2D(U - U, U, pos_part_over_t, pos_obj_over_t, clear = True)
 
+    return ali_array
 
-    return align_end
-
-def variation(type):
+def variation(type, start):
     """
     calcualtes the allignment of the systems for different values of the noise/density.
     """
@@ -111,52 +113,96 @@ def variation(type):
     ali_list = []
 
     if type == "noise":
+        list_col = [type] + [(i + start) for i in range(U-Y)]
+        df = pd.DataFrame(columns = list_col)
 
         # for each value in list run main funciton
-        for no in noise_list:
+        for i, no in enumerate(noise_list):
             # change the noise to new value of noise for the global variable noise
             global noise
             noise = no
-            # get the allignnment from the main funciton
-            all = one_run()
 
-            # append this to the all_list
-            ali_list.append(all)
+            # get the allignnment values from the main funciton for each noise
+            al_list = one_run()
+            d = [no] + al_list
+            df.loc[i] = d
 
-        return noise_list, ali_list
+        return df
 
     if type == "density":
+        list_col = [type] + [(i + start) for i in range(U-Y)]
+        df = pd.DataFrame(columns = list_col)
+
         # for each value in list run main funciton
-        for density in density_list:
+        for i, density in enumerate(density_list):
             # change the noise to new value of noise for the global variable noise
             global L
             L = (N / density) ** (1 / 2)
-            # get the allignnment from the main funciton
-            all = one_run()
 
-            # append this to the all_list
-            ali_list.append(all)
+            # get the allignnment values from the main funciton for each noise
+            al_list = one_run()
+            d = [density] + al_list
+            df.loc[i] = d
 
-        return density_list, ali_list
+        return df
 
     if type == "k_density":
+        list_col = [type] + [(i + start) for i in range(U-Y)]
+        df = pd.DataFrame(columns = list_col)
+
         # for each value in list run main funciton
-        for k_value in k_list:
+        for i, k_value in enumerate(k_list):
             # change the noise to new value of noise for the global variable noise
             global k
             k = k_value
-            # get the allignnment from the main funciton
-            all = one_run()
 
-            # append this to the all_list
-            ali_list.append(all)
-
-        return k_list, ali_list
+            # get the allignnment values from the main funciton for each noise
+            al_list = one_run()
+            d = [k_value] + al_list
+            df.loc[i] = d
+        return df
     else:
-        print("not the correct 'type' given, try 'noise' or 'density'.")
+        print("not the correct 'type' given, try 'noise',  'density' or 'k-density'.")
         return None
 
-def average_noise_allignment(n_times, type):
+
+def time_averages_alignment(type):
+    """
+    Take in previous dataframe and concatinate it with new results
+    Write it all to a new csv file
+    """
+    # create a list containg the values of noise tested
+    noise_list = list(np.linspace(0, 5, num = 20))
+    density_list = list(np.linspace(0.0001, 3, num = 15)) + list(np.linspace(3.5, 10, num = 5))
+    k_list = [i for i in range(20)]
+
+    if type == "noise":
+        corr_list = noise_list
+    if type == "density":
+        corr_list = density_list
+    if type == "k_density":
+        corr_list = k_list
+
+    # read in data from file if file exists
+    try:
+        # read in csv as dataframe
+        df = pd.read_csv("./time_averages_{}_{}/N_{}_U_20000.csv".format(type, model, N))
+        average_number = len(df.columns) -1
+
+    except IOError as e:
+        # set the current averages to the number of repeats
+        average_number = 0
+        df = pd.DataFrame({type: corr_list})
+
+    df_new = variation(type, average_number)
+    df_w = pd.merge(df, df_new, on = type)
+
+    print(df_w)
+
+    df_w.to_csv("./time_averages_{}_{}/N_{}_U_20000.csv".format(type, model, N), index = False)
+    return None
+
+def ensemble_average_allignment(n_times, type):
     """
     Create a file of ongoing repeats for the given 'type' of average.
     """
@@ -186,7 +232,6 @@ def average_noise_allignment(n_times, type):
             # set the current averages to the number of repeats
             average_number = 0
             df = pd.DataFrame({type: corr_list})
-            # df.to_csv("./averages_{}/N_{}.csv".format(type, N))
 
 
         # generate new allignment values

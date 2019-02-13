@@ -28,17 +28,17 @@ r_c = 0.2 # radius within repulsion
 r_e = 0.5 # radius of equilibrium between the particles
 r_a = 0.8 # radius when attraction starts
 r_o = 0.05 # radius of attraction between the particels and the objects
-k = 7 # nearest neighbours
+k = 1 # nearest neighbours
 
 # picking a model
-model = "SVM" # select SVM for standard Vicsek Model and kNN for nearest neighbours
+model = "kNN" # select SVM for standard Vicsek Model and kNN for nearest neighbours
 
 # force parrameters
-alpha = 1 # stregnth of repulsive force due to the particles
+alpha = 0 # stregnth of repulsive force due to the particles
 beta = 1 # stregnth of the force due to the objects
 gamma = 1 # stregnth of allignment
 
-U = 500   # number of updates
+U = 2000   # number of updates
 dimensions = 2   # dimensions
 time_pause = 0.001 # time pause for interactive graph
 
