@@ -12,14 +12,14 @@ import matplotlib.cm as cm
 import time
 
 # constants used in the program
-L = 5  # size of the box
+L = 100 # size of the box
 N = 100  # number of particles
 M = 0   # number of objects
 v_mag = 0.05      # total magnitude of each particle velocity
 delta_t = 1     # time increment
 mass_par = 1 # masss of the particles
 mass_object = 100 # masss of the particles
-noise = 0  # noise added to the acceleration
+noise = 2  # noise added to the acceleration
 
 # distance metrics in the code
 r = 1.0   # radius of allignment
@@ -27,7 +27,7 @@ r_c = 0.2 # radius within repulsion
 r_e = 0.5 # radius of equilibrium between the particles
 r_a = 0.8 # radius when attraction starts
 r_o = 0.05 # radius of attraction between the particels and the objects
-k = 7 # number of nearest neighbours
+k = 18 # number of nearest neighbours
 
 # force parameters
 alpha = 0 # stregnth of repulsive force due to the particles
@@ -37,8 +37,7 @@ gamma = 1 # stregnth of allignment
 # picking a model
 model = "SVM" # select SVM for standard Vicsek Model and kNN for nearest neighbours
 
-U = 700   # number of updates
-Y = 400  # steady state value for the system
+U = 500   # number of updates
 dimensions = 2   # dimensions
 time_pause = 0.001 # time pause for interactive graph
 
@@ -46,16 +45,13 @@ time_pause = 0.001 # time pause for interactive graph
 
 def main():
 
-
-    one_run(plot2 = True)
-
-    # time_averages_alignment("density")
+    average_noise_allignment(1, "density")
 
     return 0
 
 # ----------------------- Whole system Functions ---------------------------------
 
-def one_run(plot1 = False, plot2 = False):
+def one_run(plot = False):
     """
     One simulation of a total run by the system.
     """
@@ -72,16 +68,13 @@ def one_run(plot1 = False, plot2 = False):
 
     align_start = allignment(velocities)
 
-    # list for average nearest neighbours at each update U
-    averages_list = []
-    for_total_average = []
-    U_list = []
+    ali_array = []
 
     # update the position for 10 times
     for i in range(U):
 
         # call update to get the new positions of the particles
-        positions, velocities, average = update_system(positions, velocities, accelerations, positions_obj)
+        positions, velocities = update_system(positions, velocities, accelerations, positions_obj)
 
         # update the positions of the objects
         positions_obj, velocities_obj = update_system_object(positions_obj, velocities_obj, accelerations_obj,
@@ -93,28 +86,17 @@ def one_run(plot1 = False, plot2 = False):
         pos_obj_over_t.append(positions_obj)
         vel_obj_over_t.append(velocities_obj)
 
-        averages_list.append(average)
-        U_list.append(i)
-
-        if i >= Y:
-            for_total_average.append(average)
-
+        ali_array.append(allignment(velocities))
     align_end = allignment(velocities)
 
     # plot the movment of the particles if plot is set to true
-    if plot1 == True:
+    if plot == True:
         show_path_2D(U - U, U, pos_part_over_t, pos_obj_over_t, clear = True)
 
-    if plot2 == True:
-        # plot average neighbours for each time step
-        plot_average_neighbours(averages_list, U_list)
 
-    # np_average = np.array(for_total_average)
-    # mean = np.mean(np_average)
+    return align_end
 
-    return align_end, for_total_average
-
-def variation(type, start):
+def variation(type):
     """
     calcualtes the allignment of the systems for different values of the noise/density.
     """
@@ -122,87 +104,57 @@ def variation(type, start):
     # create a list containg the values of noise tested
     noise_list = list(np.linspace(0, 5, num = 20))
     density_list = list(np.linspace(0.0001, 3, num = 15)) + list(np.linspace(3.5, 10, num = 5))
+    k_list = [i for i in range(20)]
     # L_list = [3.1, 5, 10, 31.6, 50]
     # N = [40, 100, 400, 4000, 10000]
 
-    neighbours_list = []
+    ali_list = []
 
     if type == "noise":
-        list_col = [type] + [(i + start) for i in range(U - Y)]
-        df = pd.DataFrame(columns = list_col)
 
         # for each value in list run main funciton
-        for i, no in enumerate(noise_list):
+        for no in noise_list:
             # change the noise to new value of noise for the global variable noise
             global noise
             noise = no
+            # get the allignnment from the main funciton
+            all = one_run()
 
-            # get the NN from the main funciton
-            averages_list = one_run()[1]
-            d = [no] + averages_list
-            df.loc[i] = d
+            # append this to the all_list
+            ali_list.append(all)
 
-
-        return df
+        return noise_list, ali_list
 
     if type == "density":
-        list_col = [type] + [(i + start) for i in range(U - Y)]
-        df = pd.DataFrame(columns = list_col)
-
         # for each value in list run main funciton
-        for i, density in enumerate(density_list):
+        for density in density_list:
             # change the noise to new value of noise for the global variable noise
             global L
             L = (N / density) ** (1 / 2)
+            # get the allignnment from the main funciton
+            all = one_run()
 
-            # get the NN from the main funciton
-            averages_list = one_run()[1]
-            d = [density] + averages_list
-            df.loc[i] = d
+            # append this to the all_list
+            ali_list.append(all)
 
+        return density_list, ali_list
 
-        return df
+    if type == "k_density":
+        # for each value in list run main funciton
+        for k_value in k_list:
+            # change the noise to new value of noise for the global variable noise
+            global k
+            k = k_value
+            # get the allignnment from the main funciton
+            all = one_run()
 
+            # append this to the all_list
+            ali_list.append(all)
+
+        return k_list, ali_list
     else:
         print("not the correct 'type' given, try 'noise' or 'density'.")
         return None
-
-
-def time_averages_alignment(type):
-    """
-    Take in previous dataframe and concatinate it with new results
-    Write it all to a new csv file
-    """
-    # create a list containg the values of noise tested
-    noise_list = list(np.linspace(0, 5, num = 20))
-    density_list = list(np.linspace(0.0001, 3, num = 15)) + list(np.linspace(3.5, 10, num = 5))
-
-
-    if type == "noise":
-        corr_list = noise_list
-
-    if type == "density":
-        corr_list = density_list
-
-    # read in data from file if file exists
-    try:
-        # read in csv as dataframe
-        df = pd.read_csv("./neighbours_variation_with_{}_N{}.csv".format(type, N))
-        average_number = len(df.columns) -1
-
-    except IOError as e:
-        # set the current averages to the number of repeats
-        average_number = 0
-        df = pd.DataFrame({type: corr_list})
-
-    df_new = variation(type, average_number)
-    df_w = pd.merge(df, df_new, on = type)
-
-    print(df_w)
-
-    df_w.to_csv("./neighbours_variation_with_{}_N{}.csv".format(type, N), index = False)
-    return None
-
 
 def average_noise_allignment(n_times, type):
     """
@@ -212,11 +164,14 @@ def average_noise_allignment(n_times, type):
     # list with values of nosie, L and N
     noise_list = list(np.linspace(0, 5, num = 20))
     density_list = list(np.linspace(0.0001, 3, num = 15)) + list(np.linspace(3.5, 10, num = 5))
+    k_list = [i for i in range(20)]
 
     if type == "noise":
         corr_list = noise_list
     if type == "density":
         corr_list = density_list
+    if type == "k_density":
+        corr_list = k_list
 
     # for each repeat, add new allignment values to old allignment values
     for repeat in range(n_times):
@@ -231,6 +186,7 @@ def average_noise_allignment(n_times, type):
             # set the current averages to the number of repeats
             average_number = 0
             df = pd.DataFrame({type: corr_list})
+            # df.to_csv("./averages_{}/N_{}.csv".format(type, N))
 
 
         # generate new allignment values
@@ -245,56 +201,8 @@ def average_noise_allignment(n_times, type):
         # concate this with old array
         df_w = pd.concat([df, df_new], axis=1, join='inner')
 
-
         # write it to csv file
         df_w.to_csv("./averages_{}_{}/N_{}.csv".format(type, model, N), index = False)
-
-    return None
-
-def average_neighbours_variation(n_times, type):
-    """
-    Creates a file with repeats of how average neighbours vary with noise
-    /density in the SVM - the type are the control parameters.
-    """
-
-    # list with values of nosie, L and N
-    noise_list = list(np.linspace(0, 5, num = 20))
-    density_list = list(np.linspace(0.0001, 3, num = 15)) + list(np.linspace(3.5, 10, num = 5))
-
-    if type == "noise":
-        corr_list = noise_list
-    if type == "density":
-        corr_list = density_list
-
-    # for each repeat, add new allignment values to old allignment values
-    for repeat in range(n_times):
-
-        # read in data from file if file exists
-        try:
-            # read in csv as dataframe
-            df = pd.read_csv("./neighbours_variation_with_{}_N{}.csv".format(type, N))
-            average_number = len(df.columns) - 1
-
-        except IOError as e:
-            # set the current averages to the number of repeats
-            average_number = 0
-            df = pd.DataFrame({type: corr_list})
-
-
-        # generate new allignment values
-        all_neighbours_list = variation(type)[1]
-
-        # convert the average allignment to a df and the noises as well
-        d = {"average_{}".format(average_number): all_neighbours_list}
-        df_new = pd.DataFrame(data = d)
-
-        # print(df.head())
-        # print(df_new.head())
-        # concate this with old array
-        df_w = pd.concat([df, df_new], axis=1, join='inner')
-
-        # write it to csv file
-        df_w.to_csv("./neighbours_variation_with_{}_N{}.csv".format(type, N), index = False)
 
     return None
 
@@ -414,9 +322,6 @@ def update_system(positions, velocities, accelerations, positions_obj):
     new_positions = []
     new_vels = []
 
-    # particles within r for all i's
-    particles_within_r_for_all = []
-
     # loop through each index in the positions, vel, acc
     for i in range(N):
         # get the acceleration based on the positions of the particles
@@ -428,14 +333,7 @@ def update_system(positions, velocities, accelerations, positions_obj):
         new_positions.append(new_pos)
         new_vels.append(new_vel)
 
-        # for each i particle calculate the number within r
-        number_within_r = particles_in_radius(positions[i], positions, velocities)[2]
-        particles_within_r_for_all.append(number_within_r)
-
-    np_particles_within_r_for_all = np.array(particles_within_r_for_all)
-    average = np.mean(np_particles_within_r_for_all)
-
-    return new_positions, new_vels, average
+    return new_positions, new_vels
 
 def update_position(position, velocity):
     """
@@ -807,14 +705,6 @@ def phase_transition(order_parameter_values, control_parameter_values):
 
     return None
 
-def plot_average_neighbours(averages_list, U_list):
-    x = U_list
-    y = averages_list
-
-    plt.scatter(x, y)
-    plt.show()
-
-    return 0
 # ----------------------- Help Functions ------------------------------
 
 def particles_in_radius(position_particle, position_particles, velocities_particles):
@@ -830,8 +720,7 @@ def particles_in_radius(position_particle, position_particles, velocities_partic
     # array with all indecies of all particles within range for positions
     positions_within_r = []
 
-    # constant for counting how many particles are within radius
-    number_within_radius = 0
+
 
     # check over all particles in positions
     for index in range(N):
@@ -861,10 +750,8 @@ def particles_in_radius(position_particle, position_particles, velocities_partic
             # and add position to all positions within r
             positions_within_r.append(position_particles[index])
 
-            # also increase number of particles within radius
-            number_within_radius += 1
 
-    return velocities_within_r, positions_within_r, number_within_radius
+    return velocities_within_r, positions_within_r
 
 def k_particles(chosen_particle, positions, velocities):
     """

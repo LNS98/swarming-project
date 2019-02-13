@@ -31,4 +31,4 @@ def main(type, N, folder, name_of_file):
     return 0
 
 
-main("density", 100, "average_neighbours_SVM", "average_neighbours_N100")
+main("density", 40, "average_neighbours_SVM", "average_neighbours_N40")
