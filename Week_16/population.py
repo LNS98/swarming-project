@@ -7,23 +7,34 @@ import numpy as np
 import matplotlib.pyplot as plt
 import random
 
-from rotor_generator import Rotor, random_rotor_x_y
+from rotor_generator import Rotor, random_rotor
+from simple_rotor import one_run
 
 
-pop = 20 # population number
+# pop = 20 # population number
 
 
-for i in range(40):
-    rotor = random_rotor_x_y()
 
-    if rotor == False:
-        continue
+rotor = random_rotor().fitness(plot = True)
 
-    x, y = rotor
+print(rotor[-1])
 
 
-    plt.plot(x,y)
-    plt.show()
+
+
+
+# for i in range(pop):
+#     rotor = random_rotor_x_y()
+#
+#     # skip the rotors which are wrong
+#     if rotor == False:
+#         continue
+#
+#     x, y = rotor
+#
+#
+#     plt.plot(x,y)
+#     plt.show()
 
 
 
