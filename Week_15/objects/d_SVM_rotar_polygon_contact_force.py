@@ -23,6 +23,7 @@ delta_t = 1     # time increment
 mass_par = 1 # masss of the particles
 mass_object = 1000 # masss of the object
 mom_inertia = (1/3) * mass_object # PERHAPS CHANGE A BIT BUT ITS JUST A DAMPING TERM SO DON'T WORRY TOO MUCH
+b = 9  # outer size of radius of object
 noise = 0  # noise added to the velocity
 k = 2 # nearest neighbours
 
@@ -115,24 +116,65 @@ def one_run(plot = False):
 
 # ----------------------- Building the objects Functions ---------------------------------
 
-def polygon(centre, a, b, angle_diff, spikes):
+def polygon(origin, a, angle_diff, spikes):
     """
     Define the polygon from the points on the verticies.
     """
-    # ------- build the rotar ----------------
+    refvec = (0, 1)
 
-    pts = []
+    def clockwiseangle_and_distance(point):
+        """
+        Finds angle between point and ref vector ffor sortinf points in rotor
+        in order of angles
+        """
 
-    x_0, y_0 = centre  # centre of circle
+
+        # Vector between point and the origin: v = p - o
+        vector = [point[0]-origin[0], point[1]-origin[1]]
+
+        # Length of vector: ||v||
+        lenvector = math.hypot(vector[0], vector[1])
+
+        # If length is zero there is no angle
+        if lenvector == 0:
+            return -math.pi, 0
+
+        # Normalize vector: v/||v||
+        normalized = [vector[0]/lenvector, vector[1]/lenvector]
+        dotprod  = normalized[0]*refvec[0] + normalized[1]*refvec[1]     # x1*x2 + y1*y2
+        diffprod = refvec[1]*normalized[0] - refvec[0]*normalized[1]     # x1*y2 - y1*x2
+
+        angle = math.atan2(diffprod, dotprod)
+
+        # Negative angles represent counter-clockwise angles so we need to subtract them
+        # from 2*pi (360 degrees)
+        if angle < 0:
+            return 2*math.pi+angle
+        # I return first the angle because that's the primary sorting criterium
+        return angle
+
+
+    pts_in = []
+    pts_out = []
+    pts_tot = []
+
+    x_0, y_0 = origin  # centre of circle
+
 
     for i in range(spikes):
         value_out = [x_0 + b * np.cos(2 * np.pi * i / spikes), y_0 + b * np.sin(2 * np.pi * i / spikes)]
         value_in = [x_0 + a * np.cos(angle_diff + 2 * np.pi * i / spikes), y_0 + a * np.sin(angle_diff + 2 * np.pi * i / spikes)]
-        pts.append(value_out)
-        pts.append(value_in)
+        pts_out.append(value_out)
+        pts_in.append(value_in)
 
+    sorted_out = sorted(pts_out, key=clockwiseangle_and_distance)
+    sorted_in = sorted(pts_in, key=clockwiseangle_and_distance)
 
-    return pts
+    for i in range(len(sorted_in)):
+        pts_tot.append(sorted_out[i])
+        pts_tot.append(sorted_in[i])
+
+    return pts_tot
 
 # ----------------------- System Functions ---------------------------------
 
@@ -1015,9 +1057,13 @@ def help():
     Funciton used for different reasons.
     """
 
-    poly = polygon([L/2, L/2], L * 0.1, L * 0.25,   0, 6)
+    poly = polygon([L/2, L/2], 8, 0.184799567, 8)
 
     poly = np.array(poly)
+
+    print(poly)
+
+
     x, y = poly.T
 
     x = np.append(x, x[0])
@@ -1034,6 +1080,6 @@ def help():
 
 # run program
 start = time.time()
-main()
-# help()
+# main()
+help()
 print("------------------------- Time Taken: {} -------------------".format(time.time() - start))
