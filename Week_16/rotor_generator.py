@@ -93,12 +93,11 @@ class Rotor:
     def get_x_y(self):
         points_to_plot = self.vertices()
 
-
         points_to_plot = np.array(points_to_plot)
         x, y = points_to_plot.T
 
-        x = np.append(x, x[0])
-        y = np.append(y, y[0])
+        x = np.append(x, x[0]).tolist()
+        y = np.append(y, y[0]).tolist()
 
         return x, y
 
