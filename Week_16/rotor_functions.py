@@ -1,6 +1,3 @@
-"""
-Program built to investiagte coding up the physics of object colliding.
-"""
 
 import numpy as np
 from scipy.stats import moment
@@ -13,178 +10,17 @@ import matplotlib.cm as cm
 from shapely.geometry import LineString, Point, LinearRing, Polygon
 import time
 
-# constants used in the program
-bound_cond = True   # set the boundry conditions on or off
+
+
 L = 30  # size of the box
-N = 5  # number of particles
-M = 1   # number of objects
-v_mag = 0.05      # total magnitude of each particle velocity
-delta_t = 1     # time increment
-mass_par = 1 # masss of the particles
-b = 9
-mass_object = 1000 # masss of the object
-mom_inertia = (1/3) * mass_object # PERHAPS CHANGE A BIT BUT ITS JUST A DAMPING TERM SO DON'T WORRY TOO MUCH
-noise = 0  # noise added to the velocity
-k = 2 # nearest neighbours
-
-# distance metrics in the code
-r = 1.0   # radius of allignment
-r_c = 0.05 # radius within repulsion
-r_e = 0.5 # radius of equilibrium between the particles
-r_a = 0.8 # radius when attraction starts
-r_o = 0.1 # radius of attraction between the particels and the objects
-
-# force parrameters
-alpha = 1e-5 # stregnth of repulsive force between to the particles
-beta = 1 # stregnth of the force due to the objects on the particles
-gamma = 0 # stregnth of allignment
+U = 100   # timesteps
 
 
-# picking a model
-model = "kNN" # select SVM for standard Vicsek Model and kNN for nearest neighbours
-
-
-U = 500   # number of updates
-dimensions = 2   # dimensions
-time_pause = 1e-7 # time pause for interactive graph
-
-
-
-def main():
-
-    # make 1 complete run of the system
-    angle = one_run(plot = False)
-    # plt.ioff()
-    show_allignment_plot([i for i in range(U + 1)], angle)
-    plt.show()
-    print("omega end: {}".format(angle[-1]))
-
-    return 0
-
-# ----------------------- Whole system Functions ---------------------------------
-
-def one_run(plot = False):
-    """
-    One simulation of a total run by the system.
-    """
-
-    # produce the polygons (verticeies of the polygon)
-    positions_polygons = [polygon([L/2, L/2], L * 0.1, math.pi / 4, 4) for i in range(M)]
-
-    # fill up a box with particles and objects
-    positions, velocities, accelerations = pop_box(positions_polygons)
-
-    # returns positions, velocities, accelerations of com of objects
-    positions_obj, ang_velocities_obj, accelerations_obj = objects(positions_polygons)
-
-    # append the positions to the positions over time
-    angle_over_t = [0]
-    pos_part_over_t = [positions]
-    vel_part_over_t = [velocities]
-    pos_poly_over_t = [positions_polygons]
-    ang_vel_obj_over_t = [ang_velocities_obj]
-
-    # get the allignment
-    align_start = allignment(velocities)
-
-    # update the position for 10 times
-    for i in range(U):
-
-        # call update to get the new positions of the particles
-        positions, velocities = update_system(positions, velocities, positions_obj, positions_polygons)
-
-        # update the positions of the objects
-        positions_polygons, ang_velocities_obj = update_system_object(positions_polygons, positions_obj, ang_velocities_obj,
-                                                                      positions, velocities)
-
-        # get the angle variaition due to the ang velocity
-        new_angle = angle_over_t[-1]  + ang_velocities_obj[0] * delta_t
-
-        # append in positions over time
-        pos_part_over_t.append(positions)
-        vel_part_over_t.append(velocities)
-        pos_poly_over_t.append(positions_polygons)
-        ang_vel_obj_over_t.append(ang_velocities_obj)
-        angle_over_t.append(new_angle)
-
-
-    ang_velocities_obj_end = ang_velocities_obj
-    align_end = allignment(velocities)
-
-    # plot the movment of the particles if plot is set to true
-    if plot == True:
-        show_path_2D(0, U, pos_part_over_t, pos_poly_over_t, clear = True)
-
-    return angle_over_t
-
-# ----------------------- Building the objects Functions ---------------------------------
-
-def polygon(origin, a, angle_diff, spikes):
-    """
-    Define the polygon from the points on the verticies.
-    """
-    refvec = (0, 1)
-
-    def clockwiseangle_and_distance(point):
-        """
-        Finds angle between point and ref vector ffor sortinf points in rotor
-        in order of angles
-        """
-
-
-        # Vector between point and the origin: v = p - o
-        vector = [point[0]-origin[0], point[1]-origin[1]]
-
-        # Length of vector: ||v||
-        lenvector = math.hypot(vector[0], vector[1])
-
-        # If length is zero there is no angle
-        if lenvector == 0:
-            return -math.pi, 0
-
-        # Normalize vector: v/||v||
-        normalized = [vector[0]/lenvector, vector[1]/lenvector]
-        dotprod  = normalized[0]*refvec[0] + normalized[1]*refvec[1]     # x1*x2 + y1*y2
-        diffprod = refvec[1]*normalized[0] - refvec[0]*normalized[1]     # x1*y2 - y1*x2
-
-        angle = math.atan2(diffprod, dotprod)
-
-        # Negative angles represent counter-clockwise angles so we need to subtract them
-        # from 2*pi (360 degrees)
-        if angle < 0:
-            return 2*math.pi+angle
-        # I return first the angle because that's the primary sorting criterium
-        return angle
-
-
-    pts_in = []
-    pts_out = []
-    pts_tot = []
-
-    x_0, y_0 = origin  # centre of circle
-
-
-    for i in range(spikes):
-        value_out = [x_0 + b * np.cos(2 * np.pi * i / spikes), y_0 + b * np.sin(2 * np.pi * i / spikes)]
-        value_in = [x_0 + a * np.cos(angle_diff + 2 * np.pi * i / spikes), y_0 + a * np.sin(angle_diff + 2 * np.pi * i / spikes)]
-        pts_out.append(value_out)
-        pts_in.append(value_in)
-
-    sorted_out = sorted(pts_out, key=clockwiseangle_and_distance)
-    sorted_in = sorted(pts_in, key=clockwiseangle_and_distance)
-
-    for i in range(len(sorted_in)):
-        pts_tot.append(sorted_out[i])
-        pts_tot.append(sorted_in[i])
-
-    return pts_tot
-
-# ----------------------- System Functions ---------------------------------
 
 def pop_box(polygons):
     """
-    Function which creates one particle with a ramdom position and velocity
-    in a square of dimensions L by L.
+    Function which populates the box by taking in a rotor and making
+    sure that particles are not within it
     """
 
     # will hold each posi/vel/acc for each particle in the system
@@ -203,7 +39,7 @@ def pop_box(polygons):
         for poly in polygons:
             cnt = centroid(poly)
             cond = (cnt[0] - init_position[0]) ** 2 + (cnt[1] - init_position[1]) ** 2
-            if cond < (b + 5 * v_mag * delta_t) ** 2:
+            if cond < (poly.outer_r + 5 * v_mag * delta_t) ** 2:
                 inside = True
                 break
         if inside == True:
@@ -222,51 +58,37 @@ def pop_box(polygons):
 
     return positions, velocities, accelerations
 
-def objects(polygons):
+
+
+def allignment(velocities):
     """
-    Create a set of M objects, defining them just by there centre of mass.
-    As of now they are basically particles of different species.
+    Calculates the net allignment of the velocities of all the particles and
+    normmailses this value so that if they are all alligned the allignment is 1.
     """
+    # initialise values for sum of all vx and vy
+    vx = 0
+    vy = 0
 
-    # will hold each posi/vel/acc for each particle in the system
-    positions = []
-    ang_velocities = []
-    accelerations = []
+    # sum all velocities in velocities array
+    for particle in velocities:
+        #add vx particle to sum of all vx
+        vx += particle[0]
 
-    for i in range(M):
-        # lsit containing positions and velocities at random
-        init_position = centroid(polygons[i])
-        init_velocity = 0
-        init_acceleration = [0 for i in range(dimensions)]
+        #add vy particle to sum of all vy
+        vy += particle[1]
 
-        # append the positions to the bigger lists
-        positions.append(init_position)
-        ang_velocities.append(init_velocity)
-        accelerations.append(init_acceleration)
+    # Total magnitude of velocity of particles
+    v_mag_tot = math.sqrt(vx**2 + vy**2)
 
-    return positions, ang_velocities, accelerations
+    # Check alignment of particles
+    v_a = (1/(N * v_mag)) * (v_mag_tot)
 
-def periodic_boundaries(position):
-    """
-    If particle is over the limit of the box run this function and it will return
-    the correct position of the particle.
-    """
-    global L
+    return v_a
 
-    # check if its under 0
-    if position < 0:
-        return position + L
 
-    # if its over L
-    elif position > L:
-        return position - L
 
-    # otherwise just return the position
-    else:
-        return position
 
-# ----------------------- Update Functions for particles --------------------
-
+#------------------ Particle Update Functions ---------------------
 def update_system(positions, velocities, positions_obj, polygons):
     """
     Updates the positons and velocities of ALL the particles in a system.
@@ -364,6 +186,7 @@ def update_acceleration(position_particle, velocity_particle, position_particles
     # print(new_acceleration)
     return new_acceleration
 
+
 # ----------------------- Update Functions for objects ------------------------------
 
 def update_system_object(polygons, positions_obj, ang_velocities_obj, position_particles, velocity_particles):
@@ -445,9 +268,7 @@ def update_position_object_vertex(polygon, position_obj, ang_vel_object):
 
     return new_pos
 
-# ----------------------- Forces Functions ------------------------------
-
-
+# ------------------------Forces -----------------------------------------------
 def torque_force(polygon, position_obj, ang_vel_object, velocity_particle, position_particle):
     """
     Calcualte the torque on an object due to a particle hitting it.
@@ -753,147 +574,43 @@ def contact_force_object(polygon, position_obj, position_particle, velocity_part
 
     return Force
 
-# ----------------------- Reuslts Functions ------------------------------
-
-def allignment(velocities):
+#---------------------- Functions which help main functions ----------
+def rescale(magnitude, vector):
     """
-    Calculates the net allignment of the velocities of all the particles and
-    normmailses this value so that if they are all alligned the allignment is 1.
+    Changes the length of a  given vector to that of the magnitude given.
     """
-    # initialise values for sum of all vx and vy
-    vx = 0
-    vy = 0
+    # make the vector a numpy array
+    vec = np.array(vector)
 
-    # sum all velocities in velocities array
-    for particle in velocities:
-        #add vx particle to sum of all vx
-        vx += particle[0]
+    # get the magnitude
+    mag = np.sqrt(vec.dot(vec))
 
-        #add vy particle to sum of all vy
-        vy += particle[1]
+    # multiply to rescale and make it a list
+    new_vec = (magnitude / mag) * vec
+    new_vec = list(new_vec)
 
-    # Total magnitude of velocity of particles
-    v_mag_tot = math.sqrt(vx**2 + vy**2)
+    return new_vec
 
-    # Check alignment of particles
-    v_a = (1/(N * v_mag)) * (v_mag_tot)
+def centroid(pts):
+        'Location of centroid of the rotor'
 
-    return v_a
+        # check if the last point is the same as the first, if nots so 'close' the polygon
+        if pts[0] != pts[-1]:
+            pts = pts + pts[:1]
 
-def SD_COM(position_particles):
-    """
-    Calcualte the sum of scalar distance of all the particles from the centre of mass of
-    the particles.
-    """
+        # get the x and y points
+        x = [c[0] for c in pts]
+        y = [c[1] for c in pts]
 
-    # calculate the centre of mass of the object
-    com = np.array(centroid(position_particles))
+        # initialise the x and y centroid to 0 and get the area of the polygon
+        sx = sy = 0
+        a = area(pts)
 
-    sum = 0
-    # loop over each particle in the positions
-    for particle in position_particles:
-        sum += distance_fun(particle, com)
+        for i in range(len(pts) - 1):
+            sx += (x[i] + x[i+1])*(x[i]*y[i+1] - x[i+1]*y[i])
+            sy += (y[i] + y[i+1])*(x[i]*y[i+1] - x[i+1]*y[i])
 
-    return sum
-
-# ----------------------- Visualise Functions ------------------------------
-
-def show_path_2D(start, end, coordinates, polygons, clear = True):
-    """
-    Function which takes in the coordinates as described in straight_particle and
-    plots the result on a scatter graph.
-    """
-
-    # start interactive mode
-    plt.ion()
-
-    # crete eempty figure on which data will go and first subplot
-    fig = plt.figure()
-
-    # get into the correct time step
-    for time_step in range(start, end):
-        # list of colours used for animation
-        colours = cm.rainbow(np.linspace(0, 1, N))
-
-        # loop over each particle and colour
-        for i in range(N):
-            # plot x, y poistion of particle in a given colour and set axis to size of box
-            plt.scatter(coordinates[time_step][i][0], coordinates[time_step][i][1], s = 3, color = 'r')
-
-            # plot the object
-            if i < M:
-                polygon = np.array(polygons[time_step][i])
-                # get the points of the polygon to plot it
-                x, y = polygon.T
-
-                # print(x, y)
-
-                x = np.append(x, x[0])
-                y = np.append(y, y[0])
-
-                # print(x, y)
-
-                # plot the polygon
-                plt.plot(x , y)
-                # plt.scatter(polygons_com[time_step][i][0], polygons_com[time_step][i][1], s = 5, color = 'g')
-
-            if bound_cond == True:
-                plt.axis([0, L, 0, L])
-            plt.axis([0, L, 0, L])
-            # plt.axis([-L*2, L*2, -L*2, L*2])
-
-        # show graph
-        plt.show()
-        plt.pause(time_pause)
-
-        # decide if you want to clear
-        if clear == True:
-            plt.clf()
-
-    return None
-
-def show_allignment_plot(time, allignment):
-
-    # plot time vs allignment for x vs y
-    plt.clf()
-    plt.plot(time, allignment, linewidth=1, marker=".", markersize=3)
-    plt.xlabel("Time")
-    plt.ylabel("Angle")
-    plt.show()
-
-    return None
-
-def phase_transition(order_parameter_values, control_parameter_values):
-    """
-    Plots a potential phase diagram between an order parameter, such as alignment
-    against a control parameter such as nosie.
-    """
-    # plot the order parameter on the y axis and the control on the x
-    plt.scatter(control_parameter_values, order_parameter_values,
-                s = 2, label = "N = {}, L = {}".format(N, L))
-    plt.xlabel("nosie") # these should be changed for other parameters
-    plt.ylabel("allignment") # these should be changed for other parameters
-    plt.legend()
-    plt.show()
-
-    return None
-
-def SD_graph(SD_list):
-    """
-    Graph the results of the sum of distances.
-    """
-    # get the x values, the timesteps
-    x = [i for i in range(U)]
-
-    # plot the results
-    plt.scatter(x, SD_list, s = 3)
-    plt.xlabel("Time Step")
-    plt.ylabel("Sum of Distance from Centre of Mass")
-    plt.show()
-
-    return None
-
-# ----------------------- Help Functions ------------------------------
+        return [sx/(6*a), sy/(6*a)]
 
 def particles_in_radius(position_particle, position_particles, velocities_particles):
     """
@@ -981,189 +698,3 @@ def k_particles(chosen_particle, positions, velocities):
         new_distances.pop(index_k)
 
     return velocities_k, positions_k
-
-
-def clockwiseangle(point):
-        """
-        Finds angle between point and ref vector ffor sortinf points in rotor
-        in order of angles
-        """
-
-
-        # Vector between point and the origin: v = p - o
-        vector = [point[0]-origin[0], point[1]-origin[1]]
-
-        # Length of vector: ||v||
-        lenvector = math.hypot(vector[0], vector[1])
-
-        # If length is zero there is no angle
-        if lenvector == 0:
-            return -math.pi, 0
-
-        # Normalize vector: v/||v||
-        normalized = [vector[0]/lenvector, vector[1]/lenvector]
-        dotprod  = normalized[0]*refvec[0] + normalized[1]*refvec[1]     # x1*x2 + y1*y2
-        diffprod = refvec[1]*normalized[0] - refvec[0]*normalized[1]     # x1*y2 - y1*x2
-
-        angle = math.atan2(diffprod, dotprod)
-
-        # Negative angles represent counter-clockwise angles so we need to subtract them
-        # from 2*pi (360 degrees)
-        if angle < 0:
-            return 2*math.pi+angle
-        # I return first the angle because that's the primary sorting criterium
-        return angle
-
-def area(pts):
-    'Area of cross-section.'
-
-    if pts[0] != pts[-1]:
-      pts = pts + pts[:1]
-
-    x = [ c[0] for c in pts ]
-    y = [ c[1] for c in pts ]
-    s = 0
-
-    for i in range(len(pts) - 1):
-        s += x[i]*y[i+1] - x[i+1]*y[i]
-
-    return s/2
-
-def centroid(pts):
-        'Location of centroid.'
-
-        # check if the last point is the same as the first, if nots so 'close' the polygon
-        if pts[0] != pts[-1]:
-            pts = pts + pts[:1]
-
-        # get the x and y points
-        x = [c[0] for c in pts]
-        y = [c[1] for c in pts]
-
-        # initialise the x and y centroid to 0 and get the area of the polygon
-        sx = sy = 0
-        a = area(pts)
-
-        for i in range(len(pts) - 1):
-            sx += (x[i] + x[i+1])*(x[i]*y[i+1] - x[i+1]*y[i])
-            sy += (y[i] + y[i+1])*(x[i]*y[i+1] - x[i+1]*y[i])
-
-        return [sx/(6*a), sy/(6*a)]
-
-def inertia(pts):
-    'Moments and product of inertia about centroid.'
-
-    if pts[0] != pts[-1]:
-      pts = pts + pts[:1]
-
-    x = [c[0] for c in pts]
-    y = [c[1] for c in pts]
-
-    sxx = syy = sxy = 0
-    a = area(pts)
-    cx, cy = centroid(pts)
-
-    for i in range(len(pts) - 1):
-      sxx += (y[i]**2 + y[i]*y[i+1] + y[i+1]**2)*(x[i]*y[i+1] - x[i+1]*y[i])
-      syy += (x[i]**2 + x[i]*x[i+1] + x[i+1]**2)*(x[i]*y[i+1] - x[i+1]*y[i])
-      sxy += (x[i]*y[i+1] + 2*x[i]*y[i] + 2*x[i+1]*y[i+1] + x[i+1]*y[i])*(x[i]*y[i+1] - x[i+1]*y[i])
-
-    return [sxx/12 - a*cy**2, syy/12 - a*cx**2]
-
-def distance_fun(pos1, pos2):
-    """
-    Calculate the distance between the points
-    """
-    # get the two arrays as np arrays, easier to do calculations
-    pos1 = np.array(pos1)
-    pos2 = np.array(pos2)
-
-    # get the distance
-    distance = pos2 - pos1
-
-    # distance is the same as the magnitude
-    dist = np.sqrt(distance.dot(distance))
-
-    return dist
-
-def angle_to_xy(magnitude, angle):
-    """
-    Takes an angle in radians as input as returns x and y poistion for the corresponding angle
-    using r as v_mag, a predifined value which is the magnitude of the velocity.
-    """
-    # get x using x = cos(angle) and y = sin(angle)
-    x = magnitude * math.cos(angle)
-    y = magnitude * math.sin(angle)
-
-    return [x, y]
-
-def rescale(magnitude, vector):
-    """
-    Changes the length of a  given vector to that of the magnitude given.
-    """
-    # make the vector a numpy array
-    vec = np.array(vector)
-
-    # get the magnitude
-    mag = np.sqrt(vec.dot(vec))
-
-    # multiply to rescale and make it a list
-    new_vec = (magnitude / mag) * vec
-    new_vec = list(new_vec)
-
-    return new_vec
-
-def per_boun_distance(i, j):
-    """
-    Calculates the minimum distance  between two particles in a box with periodic
-    boundries.
-    """
-    # calculate the minimum x distance
-    in_distance_x = j[0] - i[0]
-    out_distance_x = L - in_distance_x
-    distance_x = min(in_distance_x, out_distance_x)
-
-
-    # calculate the minimum y distance
-    in_distance_y = j[1] - i[1]
-    out_distance_y = L - in_distance_y
-    distance_y = min(in_distance_y, out_distance_y)
-
-    return distance_x, distance_y
-
-
-# ----------------------- Test functins  Functions ------------------------------
-
-def help():
-    """
-    Funciton used for different reasons.
-    """
-
-    poly = polygon([L/2, L/2], L * 0.1, math.pi / 4, 4)
-    pos_obj = centroid(poly)
-    pos_part = [L/ 2 - 2 + 0.8, L/2 + 0.4]
-    vel_part = [1, 0]
-
-    force = contact_force_particle(poly, pos_obj, pos_part, vel_part)
-
-    print(force)
-
-    poly = np.array(poly)
-
-    x, y = poly.T
-
-    x = np.append(x, x[0])
-    y = np.append(y, y[0])
-
-    plt.plot(x, y)
-    plt.scatter(x, y, c = 'r')
-    plt.scatter(pos_part[0], pos_part[1], c = 'b', s = 2)
-    plt.show()
-    return None
-
-
-# run program
-start = time.time()
-# main()
-# help()
-print("--------------- Time Taken: {} ---------".format(time.time() - start))
