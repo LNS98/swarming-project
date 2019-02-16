@@ -1,6 +1,7 @@
 """
 Program built to investiagte coding up the physics of object colliding.
 """
+from __future__ import division
 
 import numpy as np
 from scipy.stats import moment
@@ -47,7 +48,7 @@ noise = 0  # noise added to the velocity
 model = "kNN" # select SVM for standard Vicsek Model and kNN for nearest neighbours
 
 
-U = 500   # number of updates
+U = 1000   # number of updates
 dimensions = 2   # dimensions
 time_pause = 1e-7 # time pause for interactive graph
 
@@ -1217,7 +1218,7 @@ def help():
 
 
 # run program
-start = time.time()
+# start = time.time()
 # main()
 # help()
-print("------------------------- Time Taken: {} -------------------".format(time.time() - start))
+# print("------------------------- Time Taken: {} -------------------".format(time.time() - start))

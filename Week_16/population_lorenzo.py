@@ -11,7 +11,6 @@ from multiprocessing import Pool
 from rotor_generator import *
 
 
-pop = 20 # population number
 
 class Population:
 
@@ -37,10 +36,19 @@ class Population:
         """
         scores = {}
 
+        # create a pool with 20 processes
+        p = Pool(processes = 24)
+
+        # get the fitness scores simulatneously for each rotor
+        data = p.map(fitness_mlp, self.container)
+
+        # wait till the processes are finished
+        p.close()
+        p.join()
+
         for i in range(len(self.container)):
             element = self.container[i]
-            theta_array = element.fitness(plot = False)
-            scores[element] = theta_array[-1]
+            scores[element] = data[i]
 
         return scores
 
@@ -67,6 +75,28 @@ class Population:
         c = [x for x in dict for y in range(dict[x])]
 
         return c
+
+    def mutation(self, rotor):
+        """
+        Change a child by a given mutation rate.
+        """
+
+        repeat = True
+
+        while repeat:
+            properties = [rotor.inner_r, rotor.spikes, rotor.angle]
+
+            for element in properties:
+                # generate a random number
+                num = random.random()
+                if num < mu_rate:
+                    #change element of to a random choice
+                    rotor.mutate(element)
+
+            if rotor.validation():
+                repeat = False
+
+        return None
 
     def generate(self):
         """
@@ -117,21 +147,16 @@ class Population:
         scores = self.calc_fitness()
 
         vals = np.array(list(scores.values()))
-        print(np.mean(vals))
+        print("Average fitness: {}".format(np.mean(vals)))
 
-        return None
+        return vals
 
 
-# population = Population(10)
-#
-# def optimisation():
-#     population.initialise()
-#     for i in range(5):
-#         population.calc_fitness()
-#         population.generate()
-#         population.average_fitness()
-#
-#     return None
+
+
+
+
+
 
 def fitness_mlp(rotor):
     """
@@ -185,25 +210,33 @@ def fitness_mlp(rotor):
     return angle_over_t[-1]
 
 
+def main():
+    # get a function which contains the lsit of average values
+    average_list = []
+
+    population = Population(24)
+    population.initialise()
+    for i in range(10):
+        population.calc_fitness()
+        population.generate()
+        average_list.append(population.average_fitness())
+        print("------------------------- Time Taken: {} -------------------".format(time.time() - start))
+
+    plt.plot([i for i in range(10)], average_list)
+    plt.show()
+    return None
+
+
+def help():
+    rotor = random_rotor()
+
+    value = rotor.fitness()
+    print(value)
+
+    return None
 
 
 if __name__ == "__main__":
-    # create a pool with 20 processes
-    p = Pool(processes = 4)
-
-    # initilise the population
-    population = Population(4)
-    population.initialise()
-
-    # for i in range(5):
-    # create the lsit of rotars to loop in parallel
-    data = p.map(fitness_mlp, population.container)
-
-    # wait till the processes are finished
-    p.close()
-    p.join()
-
-    print(data)
-
-    population.generate()
-    population.average_fitness()
+    start = time.time()
+    main()
+    # help()

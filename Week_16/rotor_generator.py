@@ -112,7 +112,7 @@ class Rotor:
 
         return shape.is_valid
 
-    def fitness(self, plot = False):
+    def fitness(self):
         """
         returns the final angle which the rotor has moved for a
         set amount of time T_final
@@ -160,12 +160,24 @@ class Rotor:
         ang_velocities_obj_end = ang_velocities_obj
         align_end = allignment(velocities)
 
-        # plot the movment of the particles if plot is set to true
-        if plot == True:
-            show_path_2D(0, U, pos_part_over_t, pos_poly_over_t, clear = True)
 
-        return angle_over_t
+        return angle_over_t[-1]
 
+    def mutate(self, property):
+        """
+        Function which changes one of the instances of the object
+        """
+
+        if property == self.inner_r:
+            property =  random.uniform(0.5, 8.5)
+
+        if property == self.spikes:
+            property = random.randint(4,15)
+
+        if property == self.angle:
+            property = random.uniform(0, 2 * math.pi)
+
+        return None
 
 def random_rotor():
     """
@@ -175,9 +187,9 @@ def random_rotor():
     It returns the rotor object
     """
 
-    inner_r = random.randint(1, 8)
-    spikes = random.randint(5,15)
-    angle = math.pi/(random.randint(2,18))
+    inner_r = random.uniform(0.5, 8.5)
+    spikes = random.randint(4,15)
+    angle = random.uniform(0, 2 * math.pi)
 
     rotor = Rotor(inner_r, spikes, angle)
 
