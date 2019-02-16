@@ -15,8 +15,8 @@ import time
 
 # constants used in the program
 bound_cond = True   # set the boundry conditions on or off
-L = 10  # size of the box
-N = 100  # number of particles
+L = 30  # size of the box
+N = 50  # number of particles
 k = 2 # nearest neighbours
 
 M = 1   # number of objects
@@ -25,7 +25,7 @@ delta_t = 1     # time increment
 mass_par = 1 # masss of the particles
 b = L * 0.1 # outer size of radius of object
 
-mass_object = 1000 # masss of the object
+mass_object = 5000 # masss of the object
 mom_inertia = (1/3) * mass_object # PERHAPS CHANGE A BIT BUT ITS JUST A DAMPING TERM SO DON'T WORRY TOO MUCH
 
 # distance metrics in the code
@@ -47,7 +47,7 @@ noise = 0  # noise added to the velocity
 model = "kNN" # select SVM for standard Vicsek Model and kNN for nearest neighbours
 
 
-U = 10000   # number of updates
+U = 500   # number of updates
 dimensions = 2   # dimensions
 time_pause = 1e-7 # time pause for interactive graph
 

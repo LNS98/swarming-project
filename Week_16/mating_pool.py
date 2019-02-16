@@ -54,3 +54,20 @@ def generate(pop, maiting_pool):
         pop[i] = child
 
     return pop
+
+
+def mutation(mut_rate, child):
+    """
+    Change a child by a given mutation rate.
+    """
+
+    for element in child:
+        # generate a random number
+        num = random.random()
+        if num < mu_rate:
+            #change element of to a random choice
+            child.element = random_element(element)
+
+
+
+    return None
