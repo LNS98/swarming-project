@@ -16,16 +16,17 @@ import time
 # constants used in the program
 bound_cond = True   # set the boundry conditions on or off
 L = 30  # size of the box
-N = 5  # number of particles
+N = 50  # number of particles
+k = 2 # nearest neighbours
+
 M = 1   # number of objects
 v_mag = 0.05      # total magnitude of each particle velocity
 delta_t = 1     # time increment
 mass_par = 1 # masss of the particles
-b = 9
-mass_object = 1000 # masss of the object
+b = 9 # outer size of radius of object
+
+mass_object = 5000 # masss of the object
 mom_inertia = (1/3) * mass_object # PERHAPS CHANGE A BIT BUT ITS JUST A DAMPING TERM SO DON'T WORRY TOO MUCH
-noise = 0  # noise added to the velocity
-k = 2 # nearest neighbours
 
 # distance metrics in the code
 r = 1.0   # radius of allignment
@@ -35,9 +36,11 @@ r_a = 0.8 # radius when attraction starts
 r_o = 0.1 # radius of attraction between the particels and the objects
 
 # force parrameters
-alpha = 1e-5 # stregnth of repulsive force between to the particles
+alpha = 1 # stregnth of repulsive force between to the particles
 beta = 1 # stregnth of the force due to the objects on the particles
 gamma = 0 # stregnth of allignment
+fric_force = 0.1  # frictional forrce of the object when rotating
+noise = 0  # noise added to the velocity
 
 
 # picking a model
@@ -53,11 +56,11 @@ time_pause = 1e-7 # time pause for interactive graph
 def main():
 
     # make 1 complete run of the system
-    angle = one_run(plot = False)
-    # plt.ioff()
-    show_allignment_plot([i for i in range(U + 1)], angle)
+    ali_end, ang_vel = one_run(plot = True)
+    plt.ioff()
+    show_allignment_plot([i for i in range(U + 1)], ang_vel)
     plt.show()
-    print("omega end: {}".format(angle[-1]))
+    print("omega end: {}".format(ang_vel[-1]))
 
     return 0
 
@@ -69,11 +72,11 @@ def one_run(plot = False):
     """
 
     # produce the polygons (verticeies of the polygon)
-    positions_polygons = [polygon([L/2, L/2], L * 0.1, math.pi / 4, 4) for i in range(M)]
+    positions_polygons = [polygon([L/2, L/2], L * 0.2, -math.pi / 4, 9) for i in range(M)]
 
     # fill up a box with particles and objects
     positions, velocities, accelerations = pop_box(positions_polygons)
-
+    # MAYBE MAKE THIS POP_OBJECTS
     # returns positions, velocities, accelerations of com of objects
     positions_obj, ang_velocities_obj, accelerations_obj = objects(positions_polygons)
 
@@ -87,9 +90,11 @@ def one_run(plot = False):
     # get the allignment
     align_start = allignment(velocities)
 
+
     # update the position for 10 times
     for i in range(U):
 
+        # print("timestep: {}".format(i))
         # call update to get the new positions of the particles
         positions, velocities = update_system(positions, velocities, positions_obj, positions_polygons)
 
@@ -115,7 +120,7 @@ def one_run(plot = False):
     if plot == True:
         show_path_2D(0, U, pos_part_over_t, pos_poly_over_t, clear = True)
 
-    return angle_over_t
+    return align_end, angle_over_t
 
 # ----------------------- Building the objects Functions ---------------------------------
 
@@ -356,7 +361,7 @@ def update_acceleration(position_particle, velocity_particle, position_particles
 
     # calcualte force due to the objects
     for object in range(len(positions_obj)):
-        force_object -= contact_force_particle(polygons[object], positions_obj[object], position_particle, velocity_particle)
+        force_object -= obj_repulsive_force(position_particle, polygons[object])
 
 
     new_acceleration = (alpha * force_particles + beta * force_object +
@@ -452,13 +457,14 @@ def torque_force(polygon, position_obj, ang_vel_object, velocity_particle, posit
     """
     Calcualte the torque on an object due to a particle hitting it.
     """
+    force =  obj_repulsive_force(position_particle, polygon)
+
     # make the lists np arrays
     position_obj = np.array(position_obj)
     position_particle = np.array(position_particle)
 
     # get r from centroid and force
     r = position_particle - position_obj
-    force = contact_force_object(polygon, position_obj, position_particle, velocity_particle)
 
     # get the angle between r and force
     v1_u = rescale(1, r)
@@ -473,7 +479,7 @@ def torque_force(polygon, position_obj, ang_vel_object, velocity_particle, posit
     torque = np.cross(r, force)
 
     # get only th emagnitude of the force
-    torque = torque[2] - 1 * ang_vel_object
+    torque = torque[2] - fric_force * ang_vel_object
 
     return torque
 
@@ -507,7 +513,7 @@ def obj_repulsive_force(particle_position, polygon):
 
     try:
         # magnitude of force
-        magnitude = 1 /(1 + math.exp(distance/ r_o))
+       magnitude = 1 /(1 + math.exp(distance/ r_o))
 
     except OverflowError as err:
         magnitude = 0
@@ -620,7 +626,7 @@ def chate_rep_att_force(i, j):
 
     # if distnace between r_c and r_a (the radius of attraction)
     if r_c < distance < r_a:
-        # force towards r_e (the equilibrium distance)
+       # force towards r_e (the equilibrium distance)
         magnitude = (1/4) * (distance - r_e) / (r_a - r_e)
 
     # if beyond ra but smaller than r_0
@@ -675,16 +681,12 @@ def contact_force_particle(polygon, position_obj, position_particle, velocity_pa
         # get the distance between the object and the particle
         dist = point.distance(poly)
 
-        # check if the particle is not touching
-        if (dist > 5 * v_mag * delta_t):
-            return np.array([0, 0])
 
 
         # get the closest point
         d = poly.project(point)
         p = poly.interpolate(d)
         closest_point = list(p.coords)[0]
-
 
         # now you have the points,get the vecetor normal to the plane
         n = rescale(1, [position_particle[0] - closest_point[0], position_particle[1] - closest_point[1]])
@@ -693,21 +695,28 @@ def contact_force_particle(polygon, position_obj, position_particle, velocity_pa
 
         # make sure normal vector is always outward pointing
         if poly_poly.contains(p):
+            # print("before n = {}".format(n))
             n = -1 * n
+            return n
 
-        if dist < 4.5 * v_mag * delta_t:
+        # check if the particle is not touching
+        if (dist > 5 * v_mag * delta_t):
+            return np.array([0, 0])
+
+        if dist < 3 * v_mag * delta_t:
             # basically inifinite force
-            magnitude = 1e6
+            magnitude = 1e9
 
         else:
             # define the magntiude of the vector force
-            magnitude = abs(np.dot(velocity_particle, n))
+            magnitude = np.dot(velocity_particle, n)
 
         # check if the point is inside and if so revert the firection of the normal as this should always be outside
 
         # get the force in the direction of the surface normal
         Force = magnitude * n
 
+        # print("final n = {}".format(n))
 
         return Force
 
@@ -752,6 +761,50 @@ def contact_force_object(polygon, position_obj, position_particle, velocity_part
     Force = magnitude * n
 
     return Force
+
+
+def contact_force_object_new(polygon, position_obj, position_particle, velocity_particle):
+    """
+    Contact force between object and particle.
+    """
+
+    # make the polygon a linear ring and a polygon
+    poly = LinearRing(polygon)
+    poly_poly = Polygon(polygon)
+
+    # create a particle moving straight down
+    point = Point(position_particle)
+
+    # get the distance between the object and the particle
+    dist = point.distance(poly)
+
+    # check if the particle is not touching
+    if (dist > 10 * v_mag * delta_t):
+        return np.array([0, 0])
+
+
+    # get the closest point
+    d = poly.project(point)
+    p = poly.interpolate(d)
+    closest_point = list(p.coords)[0]
+
+    # now you have the points,get the vecetor normal to the plane
+    n = [position_particle[0] - closest_point[0], position_particle[1] - closest_point[1]]
+    # get the value of n, the normalised normal vector to the surface of reflection
+    n = np.array(n)
+
+    # define the magntiude of the vector force
+    magnitude = (1 / dist ** 14)
+
+    # check if the point is inside and if so revert the firection of the normal as this should always be outside
+    if poly_poly.contains(p):
+        n = -1 * n
+
+    # get the force in the direction of the surface normal
+    Force = magnitude * n
+
+    return Force
+
 
 # ----------------------- Reuslts Functions ------------------------------
 
@@ -803,6 +856,7 @@ def show_path_2D(start, end, coordinates, polygons, clear = True):
     Function which takes in the coordinates as described in straight_particle and
     plots the result on a scatter graph.
     """
+    global L, N, delta_t
 
     # start interactive mode
     plt.ion()
@@ -818,7 +872,7 @@ def show_path_2D(start, end, coordinates, polygons, clear = True):
         # loop over each particle and colour
         for i in range(N):
             # plot x, y poistion of particle in a given colour and set axis to size of box
-            plt.scatter(coordinates[time_step][i][0], coordinates[time_step][i][1], s = 3, color = 'r')
+            plt.scatter(coordinates[time_step][i][0], coordinates[time_step][i][1], s = 1, color = 'r')
 
             # plot the object
             if i < M:
@@ -858,7 +912,7 @@ def show_allignment_plot(time, allignment):
     plt.clf()
     plt.plot(time, allignment, linewidth=1, marker=".", markersize=3)
     plt.xlabel("Time")
-    plt.ylabel("Angle")
+    plt.ylabel("Allignment value")
     plt.show()
 
     return None
@@ -1139,7 +1193,7 @@ def help():
     Funciton used for different reasons.
     """
 
-    poly = polygon([L/2, L/2], L * 0.1, math.pi / 4, 4)
+    poly = polygon([L/2, L/2], L * 0.2, -math.pi / 4, 9)
     pos_obj = centroid(poly)
     pos_part = [L/ 2 - 2 + 0.8, L/2 + 0.4]
     vel_part = [1, 0]
@@ -1166,4 +1220,4 @@ def help():
 start = time.time()
 # main()
 # help()
-print("--------------- Time Taken: {} ---------".format(time.time() - start))
+print("------------------------- Time Taken: {} -------------------".format(time.time() - start))

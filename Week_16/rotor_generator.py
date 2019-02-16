@@ -25,8 +25,10 @@ class Rotor:
         self.angle = angle
 
     def description(self):
-        return "rotor has {} as inner rad, {} as outer rad, {} spikes and angle {}.".format(
-        self.inner_r, self.outer_r, self.spikes, self.angle)
+        print( "rotor has {} as inner rad, {} as outer rad, {} spikes and angle {}.\n \
+        fitness: {}".format(
+        self.inner_r, self.outer_r, self.spikes, self.angle, self.fitness(plot = False)[-1]))
+        return None
 
     def vertices(self):
         """
@@ -181,6 +183,6 @@ def random_rotor():
 
     # If it is a bad rotor, return false
     if not rotor.validation():
-        return False
+        return random_rotor()
 
     return rotor
