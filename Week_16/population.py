@@ -12,7 +12,6 @@ from rotor_generator import *
 
 pop = 20 # population number
 
-
 class Population:
 
     # Instances are specific to each object
@@ -36,61 +35,101 @@ class Population:
         and their respective score (fitness score)
         """
         scores = {}
-        # print(self.container)
-
 
         for i in range(len(self.container)):
             element = self.container[i]
-            print(element)
             theta_array = element.fitness(plot = False)
             scores[element] = theta_array[-1]
 
         return scores
 
+    def mating_pool_fun(self):
+        """
+        Return an array containg the correct number of relative amounts of the rotors
+        based on their fitness levels.
+        """
+        given_dict = self.calc_fitness()
 
-population = Population(4)
-population.initialise()
-
-print(population.calc_fitness())
-
-
-
-
-
-
-
-#
-# rotor = random_rotor().fitness(plot = True)
-#
-# print(rotor[-1])
+        keys = list(given_dict.keys())
+        vals = list(given_dict.values())
 
 
+        # change the values of the fitness score to be positive integers
+        for ind, i in enumerate(vals):
+            if i > 0:
+                vals[ind] = int(round(i * 1000))
+            else:
+                vals[ind] = 0
+
+        dict = {i:j for i, j in zip(keys, vals)}
+
+        c = [x for x in dict for y in range(dict[x])]
+
+        return c
+
+    def generate(self):
+        """
+
+        """
+
+        mating_pool = self.mating_pool_fun()
+
+        for i in range(self.member_number):
+            # choose two random parents
+            parA = random.choice(mating_pool)
+            parB = random.choice(mating_pool)
+
+            # get the values of inner_r, angles, spikes
+            inner_r = random.choice([parA.inner_r, parB.inner_r])
+            spikes = random.choice([parA.spikes, parB.spikes])
+            angle = random.choice([parA.angle, parB.angle])
+
+            # make a child out of these values
+            child = Rotor(inner_r, spikes, angle)
+
+            # If it is a bad rotor, return false
+            if not child.validation():
+                child = random_rotor()
+
+            # mutate child
+            # child = mutation(child)
+
+            # place the child in the pop
+            self.container[i] = child
+
+        return None
+
+    def describe_pop(self):
+        """
+        Returns the description of elements in population
+        """
+
+        for element in self.container:
+            element.description()
+
+        return None
+
+    def average_fitness(self):
+        """
+        This prints the average fitness value
+        """
+        scores = self.calc_fitness()
+
+        vals = np.array(list(scores.values()))
+        print(np.mean(vals))
+
+        return None
 
 
 
-# for i in range(pop):
-#     rotor = random_rotor_x_y()
-#
-#     # skip the rotors which are wrong
-#     if rotor == False:
-#         continue
-#
-#     x, y = rotor
-#
-#
-#     plt.plot(x,y)
-#     plt.show()
+def optimisation():
+    population = Population(10)
+    population.initialise()
+    for i in range(5):
+        population.calc_fitness()
+        population.generate()
+        population.average_fitness()
+        print("------------------------- Time Taken: {} -------------------".format(time.time() - start))
 
 
-
-#
-# x, y = Rotor(8, 5, 0.19634954084936207).get_x_y()
-#
-# plt.plot(x, y)
-# plt.show()
-
-
-#
-# 1.5707963267948966,
-# 10 spikes
-# 8 inner rad
+    return None
