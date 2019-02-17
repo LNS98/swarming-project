@@ -47,17 +47,22 @@ class Population:
         p.join()
 
         for i in range(len(self.container)):
+            # create a ditionary witht the rotors as keys and fitness scores as
             element = self.container[i]
             scores[element] = data[i]
 
+            # set the fit property of the given rotar to the new fitness score
+            self.container[i].fit = data[i]
+
         return scores
 
-    def mating_pool_fun(self):
+    def mating_pool_fun(self, fit_scores):
         """
         Return an array containg the correct number of relative amounts of the rotors
         based on their fitness levels.
+        Feed in the fitness scores from the calf_fitness function.
         """
-        given_dict = self.calc_fitness()
+        given_dict = fit_scores
 
         keys = list(given_dict.keys())
         vals = list(given_dict.values())
@@ -72,15 +77,15 @@ class Population:
 
         dict = {i:j for i, j in zip(keys, vals)}
 
-        c = [x for x in dict for y in range(dict[x])]
+        mat_pool = [x for x in dict for y in range(dict[x])]
 
-        return c
+        return mat_pool
 
     def mutation(self, rotor):
         """
         Change a child by a given mutation rate.
         """
-
+        mu_rate = 0.0
         repeat = True
 
         while repeat:
@@ -96,19 +101,25 @@ class Population:
             if rotor.validation():
                 repeat = False
 
-        return None
+        return rotor
 
-    def generate(self):
+    def generate(self, mating_pool):
         """
         Generate next population.
+        Feed in the mating  pool from the returned value of the mating pool
         """
 
-        mating_pool = self.mating_pool_fun()
 
         for i in range(self.member_number):
             # choose two random parents
             parA = random.choice(mating_pool)
             parB = random.choice(mating_pool)
+
+            # print("\n Parents")
+            #
+            # parA.description()
+            # parB.description()
+
 
             # get the values of inner_r, angles, spikes
             inner_r = random.choice([parA.inner_r, parB.inner_r])
@@ -123,7 +134,7 @@ class Population:
                 child = random_rotor()
 
             # mutate child
-            # child = mutation(child)
+            child = self.mutation(child)
 
             # place the child in the pop
             self.container[i] = child
@@ -144,17 +155,12 @@ class Population:
         """
         This prints the average fitness value
         """
-        scores = self.calc_fitness()
+        scores = [i.fit for i in self.container]
 
-        vals = np.array(list(scores.values()))
-        print("Average fitness: {}".format(np.mean(vals)))
+        average = np.mean(np.array(scores))
+        print("Average fitness: {}".format(average))
 
-        return vals
-
-
-
-
-
+        return average
 
 
 
@@ -216,16 +222,28 @@ def main():
 
     population = Population(24)
     population.initialise()
-    for i in range(10):
-        population.calc_fitness()
-        population.generate()
-        average_list.append(population.average_fitness())
+    for i in range(20):
+        # calculate the fitness of the rotars. Change both their fit values and return a dictionary with
+        # the rotor and the corresponding fitness value called scores
+        scores = population.calc_fitness()
+
+        # print out the population for debuging reasons
+        population.describe_pop()
+        # calculate the average fitness
+        ave = population.average_fitness()
+        average_list.append(ave)
+
+        # calculate the mating pool from which we will sample parents for the new gen of children
+        mat_pool = population.mating_pool_fun(scores)
+
+        # generate the new population of children, hence the new populaion
+        population.generate(mat_pool)
+
         print("------------------------- Time Taken: {} -------------------".format(time.time() - start))
 
-    plt.plot([i for i in range(10)], average_list)
+    plt.plot([i for i in range(20)], average_list)
     plt.show()
     return None
-
 
 def help():
     rotor = random_rotor()

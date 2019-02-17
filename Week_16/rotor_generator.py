@@ -23,11 +23,11 @@ class Rotor:
         self.inner_r = inner_r
         self.spikes = spikes
         self.angle = angle
+        self.fit = 0
 
     def description(self):
-        print( "rotor has {} as inner rad, {} as outer rad, {} spikes and angle {}.\n \
-        fitness: {}".format(
-        self.inner_r, self.outer_r, self.spikes, self.angle, self.fitness(plot = False)[-1]))
+        print( "inner_r: {}, spikes: {}, angle: {}, fitness: {}".format(
+        self.inner_r, self.spikes, self.angle, self.fit))
         return None
 
     def vertices(self):
@@ -160,8 +160,9 @@ class Rotor:
         ang_velocities_obj_end = ang_velocities_obj
         align_end = allignment(velocities)
 
+        self.fit = angle_over_t[-1]
 
-        return angle_over_t[-1]
+        return None
 
     def mutate(self, property):
         """
