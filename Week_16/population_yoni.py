@@ -36,15 +36,23 @@ class Population:
         """
         scores = {}
 
-        # create a pool with 20 processes
-        p = Pool(processes = 24)
+        data = []
 
-        # get the fitness scores simulatneously for each rotor
-        data = p.map(fitness_mlp, self.container)
+        for rotor in self.container:
+            # create a pool with 20 processes
+            p = Pool(processes = 24)
 
-        # wait till the processes are finished
-        p.close()
-        p.join()
+            # get the fitness scores simulatneously for each rotor
+            values = p.map(fitness_mlp, [rotor for i in range(24)])
+
+            # wait till the processes are finished
+            p.close()
+            p.join()
+
+            # get the value of the average
+            data_np = np.array(values)
+            ave = np.mean(data_np)
+            data.append(ave)
 
         for i in range(len(self.container)):
             # create a ditionary witht the rotors as keys and fitness scores as
@@ -85,7 +93,7 @@ class Population:
         """
         Change a child by a given mutation rate.
         """
-        mu_rate = 0.1
+        mu_rate = 0.05
         repeat = True
 
         while repeat:
@@ -163,6 +171,7 @@ class Population:
         return average
 
 
+
 def fitness_mlp(rotor):
     """
     returns the final angle which the rotor has moved for a
@@ -199,7 +208,7 @@ def fitness_mlp(rotor):
                                                                       positions, velocities)
 
         # get the angle variaition due to the ang velocity
-        new_angle = angle_over_t[-1] + ang_velocities_obj[0] * delta_t
+        new_angle = angle_over_t[-1]  + ang_velocities_obj[0] * delta_t
 
         # append in positions over time
         pos_part_over_t.append(positions)
@@ -219,9 +228,9 @@ def main():
     # get a function which contains the lsit of average values
     average_list = []
 
-    population = Population(24)
+    population = Population(5)
     population.initialise()
-    for i in range(20):
+    for i in range(100):
         # calculate the fitness of the rotars. Change both their fit values and return a dictionary with
         # the rotor and the corresponding fitness value called scores
         scores = population.calc_fitness()
@@ -240,7 +249,8 @@ def main():
 
         print("------------------------- Time Taken: {} -------------------".format(time.time() - start))
 
-    print(average_list)
+    plt.plot([i for i in range(20)], average_list)
+    plt.show()
     return None
 
 def help():

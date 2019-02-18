@@ -26,8 +26,8 @@ class Rotor:
         self.fit = 0
 
     def description(self):
-        print( "inner_r: {}, spikes: {}, angle: {}, fitness: {}".format(
-        self.inner_r, self.spikes, self.angle, self.fit))
+        print( "inner_r: {}, outer_r: {}, spikes: {}, angle: {}, fitness: {}".format(
+        self.inner_r, self.outer_r, self.spikes, self.angle, self.fit))
         return None
 
     def vertices(self):
@@ -87,8 +87,8 @@ class Rotor:
         sorted_in = sorted(pts_in, key=clockwiseangle_and_distance)
 
         for i in range(len(sorted_in)):
-            pts_tot.append(sorted_in[i])
             pts_tot.append(sorted_out[i])
+            pts_tot.append(sorted_in[i])
 
         return pts_tot
 
@@ -117,50 +117,19 @@ class Rotor:
         returns the final angle which the rotor has moved for a
         set amount of time T_final
         """
-        #get vertices of rotor
-        vertices = [self.vertices() for i in range(1)]
+        # make 1 complete run of the system
+        poolie = Pool(processes = 24)
 
-        # fill up a box with particles and objects
-        positions, velocities, accelerations = pop_box(vertices)
+        data = poolie.map(one_run, [i for i in range(50)])
 
-        # returns positions, velocities, accelerations of com of objects
-        positions_obj, ang_velocities_obj, accelerations_obj = objects(vertices)
+        # wait till the processes are finished
+        poolie.close()
+        poolie.join()
 
-        # append the positions to the positions over time
-        angle_over_t = [0]
-        pos_part_over_t = [positions]
-        vel_part_over_t = [velocities]
-        pos_poly_over_t = [vertices]
-        ang_vel_obj_over_t = [ang_velocities_obj]
+        data_np = np.array(data)
+        ave = np.mean(data_np)
 
-        # get the allignment
-        align_start = allignment(velocities)
-
-        # update the position for 10 times
-        for i in range(U):
-
-            # call update to get the new positions of the particles
-            positions, velocities = update_system(positions, velocities, positions_obj, vertices)
-
-            # update the positions of the objects
-            vertices, ang_velocities_obj = update_system_object(vertices, positions_obj, ang_velocities_obj,
-                                                                          positions, velocities)
-
-            # get the angle variaition due to the ang velocity
-            new_angle = angle_over_t[-1]  + ang_velocities_obj[0] * delta_t
-
-            # append in positions over time
-            pos_part_over_t.append(positions)
-            vel_part_over_t.append(velocities)
-            pos_poly_over_t.append(vertices)
-            ang_vel_obj_over_t.append(ang_velocities_obj)
-            angle_over_t.append(new_angle)
-
-
-        ang_velocities_obj_end = ang_velocities_obj
-        align_end = allignment(velocities)
-
-        self.fit = angle_over_t[-1]
+        self.fit = ave
 
         return None
 
@@ -188,7 +157,7 @@ def random_rotor():
     It returns the rotor object
     """
 
-    inner_r = random.uniform(0.5, 8.5)
+    inner_r = random.uniform(0.1, L*0.2)
     spikes = random.randint(4,15)
     angle = random.uniform(0, 2 * math.pi)
 
@@ -199,3 +168,60 @@ def random_rotor():
         return random_rotor()
 
     return rotor
+
+
+def one_run(rotor, i):
+
+
+    #get vertices of rotor
+    vertices = [rotor.vertices() for i in range(1)]
+
+    # fill up a box with particles and objects
+    positions, velocities, accelerations = pop_box(vertices)
+
+    # returns positions, velocities, accelerations of com of objects
+    positions_obj, ang_velocities_obj, accelerations_obj = objects(vertices)
+
+    # append the positions to the positions over time
+    angle_over_t = [0]
+    pos_part_over_t = [positions]
+    vel_part_over_t = [velocities]
+    pos_poly_over_t = [vertices]
+    ang_vel_obj_over_t = [ang_velocities_obj]
+
+    # get the allignment
+    align_start = allignment(velocities)
+
+    # update the position for 10 times
+    for i in range(U):
+
+        # call update to get the new positions of the particles
+        positions, velocities = update_system(positions, velocities, positions_obj, vertices)
+
+        # update the positions of the objects
+        vertices, ang_velocities_obj = update_system_object(vertices, positions_obj, ang_velocities_obj,
+        positions, velocities)
+
+        # get the angle variaition due to the ang velocity
+        new_angle = angle_over_t[-1]  + ang_velocities_obj[0] * delta_t
+
+        # append in positions over time
+        pos_part_over_t.append(positions)
+        vel_part_over_t.append(velocities)
+        pos_poly_over_t.append(vertices)
+        ang_vel_obj_over_t.append(ang_velocities_obj)
+        angle_over_t.append(new_angle)
+
+
+    ang_velocities_obj_end = ang_velocities_obj
+    align_end = allignment(velocities)
+
+    return angle_over_t[-1]
+
+
+#
+# rotor = random_rotor()
+# describe= rotor.description()
+# x, y = rotor.get_x_y()
+# plt.plot(x, y)
+# plt.show()
