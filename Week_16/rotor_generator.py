@@ -188,7 +188,7 @@ def random_rotor():
     It returns the rotor object
     """
 
-    inner_r = random.uniform(0.5, 8.5)
+    inner_r = random.uniform(0.1, 0.95)
     spikes = random.randint(4,15)
     angle = random.uniform(0, 2 * math.pi)
 

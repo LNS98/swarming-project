@@ -15,15 +15,15 @@ import time
 
 # constants used in the program
 bound_cond = True   # set the boundry conditions on or off
-L = 10  # size of the box
-N = 40  # number of particles
+L = 5  # size of the box
+N = 50  # number of particles
 M = 1   # number of objects
 v_mag = 0.05      # total magnitude of each particle velocity
 delta_t = 1     # time increment
 mass_par = 1 # masss of the particles
-mass_object = 1000 # masss of the object
+mass_object = 100000 # masss of the object
 mom_inertia = (1/3) * mass_object # PERHAPS CHANGE A BIT BUT ITS JUST A DAMPING TERM SO DON'T WORRY TOO MUCH
-b = 9  # outer size of radius of object
+b =1  # outer size of radius of object
 noise = 0  # noise added to the velocity
 k = 2 # nearest neighbours
 
@@ -32,10 +32,10 @@ r = 1.0   # radius of allignment
 r_c = 0.2 # radius within repulsion
 r_e = 0.5 # radius of equilibrium between the particles
 r_a = 0.8 # radius when attraction starts
-r_o = 0.005 # radius of attraction between the particels and the objects
+r_o = v_mag # radius of attraction between the particels and the objects
 
 # force parrameters
-alpha = 0 # stregnth of repulsive force between to the particles
+alpha = 1 # stregnth of repulsive force between to the particles
 beta = 1 # stregnth of the force due to the objects on the particles
 gamma = 0 # stregnth of allignment
 
@@ -44,16 +44,16 @@ gamma = 0 # stregnth of allignment
 model = "kNN" # select SVM for standard Vicsek Model and kNN for nearest neighbours
 
 
-U = 250   # number of updates
+U = 1000   # number of updates
 dimensions = 2   # dimensions
-time_pause = 1e-7 # time pause for interactive graph
+time_pause = 1e-2 # time pause for interactive graph
 
 
 
 def main():
 
     # make 1 complete run of the system
-    ali_end, ang_vel = one_run(plot = True)
+    ali_end, ang_vel = one_run(plot = False)
     plt.ioff()
     show_allignment_plot([i for i in range(U + 1)], ang_vel)
     plt.show()
@@ -69,7 +69,7 @@ def one_run(plot = False):
     """
 
     # produce the polygons (verticeies of the polygon)
-    positions_polygons = [polygon([L/2, L/2], L * 0.1, L * 0.2, math.pi/3, 6) for i in range(M)]
+    positions_polygons = [polygon([L/2, L/2], 0.76, 4.856, 9) for i in range(M)]
 
     # fill up a box with particles and objects
     positions, velocities, accelerations = pop_box(positions_polygons)
@@ -349,7 +349,7 @@ def update_acceleration(position_particle, velocity_particle, position_particles
     for particle in position_particles:
         if particle == position_particle:
             continue
-        force_particles += chate_rep_att_force(position_particle, particle)
+        force_particles += repulsive_force(position_particle, particle)
 
     # calcualte force due to the objects
     for object in range(len(positions_obj)):
@@ -518,6 +518,36 @@ def obj_repulsive_force(particle_position, polygon):
 
     return np.array([F_x, F_y])
 
+def repulsive_force(i, j):
+    """
+    calculates the force used in the repulsive_force function. As per chate 2008
+    """
+
+    if bound_cond == True:
+        # calculate the distance between the points
+        distance_x, distance_y = per_boun_distance(i, j)
+        # calcualte the magnitude of the distance between the points
+        distance = (distance_x ** 2 + distance_y ** 2) ** (1/2)
+
+    else:
+        distance_x, distance_y = j[0] - i[0], j[1] - i[1]
+        distance = distance_fun(i, j)
+
+    try:
+        # magnitude of force
+        magnitude = -1 /(1 + math.exp(distance/ r_o))
+
+    except OverflowError as err:
+        magnitude = 0
+
+    # get the x direction of the force
+    F_x = (magnitude * distance_x) / distance
+
+    # get the y direction of the force
+    F_y = (magnitude * distance_y) / distance
+
+    return np.array([F_x, F_y])
+
 def inverse_force(i, j):
     """
     (1/r)^2 repulsive force
@@ -645,8 +675,9 @@ def contact_force(polygon, position_obj, position_particle, velocity_particle):
         dist = point.distance(poly)
 
         # check if the particle is not touching
-        if (dist > v_mag * delta_t):
+        if (dist > 5 * v_mag * delta_t):
             return np.array([0, 0])
+
 
         # get the closest point
         d = poly.project(point)
@@ -658,6 +689,10 @@ def contact_force(polygon, position_obj, position_particle, velocity_particle):
         # get the value of n, the normalised normal vector to the surface of reflection
         n = np.array(n)
 
+        # check if the particle is not touching
+        if (dist < 3 * v_mag * delta_t):
+            return obj_repulsive_force(position_particle, polygon)
+
         # define the magntiude of the vector force
         magnitude = np.dot(velocity_particle, n)
 
@@ -665,43 +700,6 @@ def contact_force(polygon, position_obj, position_particle, velocity_particle):
         Force = magnitude * n
 
         return Force
-
-def contact_force_object(polygon, position_obj, velocity_particle, position_particle):
-                    """
-                    Contact force between object and particle.
-                    """
-
-                    # make the polygon a linear ring
-                    poly = LinearRing(polygon)
-
-                    # make it a Point class from shapley
-                    point = Point(position_particle)
-
-                    # inside = point.within(poly_2)
-                    # get the distance between the object and the particle
-                    dist = point.distance(poly)
-
-                    if dist > (v_mag * delta_t * 2):
-                        return np.array([0, 0])
-
-                        d = poly.project(point)
-                        p = poly.interpolate(d)
-                        closest_point = list(p.coords)[0]
-
-                        # now you have the points, try to get the vecetor normal to the plane
-                        n = rescale(1, [position_particle[0] - closest_point[0], position_particle[1] - closest_point[1]])
-
-                        # get the value of n, the normalised normal vector to the surface of reflection
-                        n = np.array(n)
-                        v_1 = np.array(velocity_particle)
-
-                        # calcualte the wanted velocity for the velocity after reflection
-                        v_2 = -(2 * (np.dot(v_1, n)) * n - v_1)
-
-                        Force = v_2 - v_1
-
-
-                        return -Force
 
 # ----------------------- Reuslts Functions ------------------------------
 
@@ -1057,7 +1055,7 @@ def help():
     Funciton used for different reasons.
     """
 
-    poly = polygon([L/2, L/2], 8, 0.184799567, 8)
+    poly = polygon([L/2, L/2], 0.76, 4.856, 9)
 
     poly = np.array(poly)
 
@@ -1080,6 +1078,6 @@ def help():
 
 # run program
 start = time.time()
-# main()
-help()
+main()
+# help()
 print("------------------------- Time Taken: {} -------------------".format(time.time() - start))
