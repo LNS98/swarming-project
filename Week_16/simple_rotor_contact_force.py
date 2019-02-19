@@ -17,24 +17,15 @@ from multiprocessing import Pool
 
 # constants used in the program
 bound_cond = True   # set the boundry conditions on or off
-<<<<<<< HEAD
-L = 3  # size of the box
-N = 70  # number of particles
-=======
 L = 5 # size of the box
 N = 50  # number of particles
->>>>>>> 705323b0bd75dfaba32b90f7c410c8c2793663b2
 k = 2 # nearest neighbours
 
 M = 1   # number of objects
 v_mag = 0.05      # total magnitude of each particle velocity
 delta_t = 1     # time increment
 mass_par = 1 # masss of the particles
-<<<<<<< HEAD
-b = 1 # outer size of radius of object
-=======
 b = L*0.2 # outer size of radius of object
->>>>>>> 705323b0bd75dfaba32b90f7c410c8c2793663b2
 
 mass_object = 1000 # masss of the object
 mom_inertia = (1/3) * mass_object # PERHAPS CHANGE A BIT BUT ITS JUST A DAMPING TERM SO DON'T WORRY TOO MUCH

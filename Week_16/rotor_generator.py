@@ -9,8 +9,13 @@ import random
 
 from shapely.geometry import LinearRing
 
-from simple_rotor import *
 
+contact_force = True
+
+if contact_force = True:
+    from simple_rotor_contact_force import *
+else:
+    from simple_rotor_repulsive_force import *
 
 class Rotor:
 
@@ -112,7 +117,7 @@ class Rotor:
 
         return shape.is_valid
 
-    def fitness(self):
+    # def fitness(self):
         """
         returns the final angle which the rotor has moved for a
         set amount of time T_final
@@ -139,7 +144,7 @@ class Rotor:
         """
 
         if property == self.inner_r:
-            property =  random.uniform(0.5, 8.5)
+            property = random.uniform(0.1, L*0.2)
 
         if property == self.spikes:
             property = random.randint(4,15)
@@ -157,11 +162,7 @@ def random_rotor():
     It returns the rotor object
     """
 
-<<<<<<< HEAD
-    inner_r = random.uniform(0.1, 0.95)
-=======
     inner_r = random.uniform(0.1, L*0.2)
->>>>>>> 705323b0bd75dfaba32b90f7c410c8c2793663b2
     spikes = random.randint(4,15)
     angle = random.uniform(0, 2 * math.pi)
 
