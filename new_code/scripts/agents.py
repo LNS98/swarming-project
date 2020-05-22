@@ -1,18 +1,35 @@
 """
 File containing functions for agents/particles.
 """
+import numpy as np
+
+from forces import allignment_force, error_force, contact_force, part_repulsive_force
+from environment import periodic_boundaries
+from utils import rescale
+
+# force parrameters
+alpha = 0 # stregnth of repulsive force between to the particles
+beta = 0 # stregnth of the force due to the objects on the particles
+gamma = 1 # stregnth of allignment
+
+N = 100  # number of particles
+delta_t = 1     # time increment
+mass_par = 1 # masss of the particles
+
+bound_cond = True
+
 def update_system(positions, velocities, positions_obj, polygons):
-    """  
+    """
     Updates the positons and velocities of ALL the particles in a system.
     """
     # lists which will contain the updated values
-    new_positions = [] 
-    new_vels = [] 
+    new_positions = []
+    new_vels = []
 
     # loop through each index in the positions, vel, acc
     for i in range(N):
         # get the acceleration based on the positions of the particles
-        acceleration = update_acceleration(positions[i], velocities[i], positions, velocities, positions_obj, polygons) 
+        acceleration = update_acceleration(positions[i], velocities[i], positions, velocities, positions_obj, polygons)
         # call update to get the new value
         new_vel = update_velocity(velocities[i], acceleration)
         new_pos = update_position(positions[i], new_vel, polygons)
@@ -29,11 +46,11 @@ def update_system(positions, velocities, positions_obj, polygons):
     return new_positions, new_vels
 
 def update_position(position, velocity, polygons):
-    """  
+    """
     Update the location of a particle and returns the new location.
     """
     # create a new lsit which will contain the new position
-    new_pos = [] 
+    new_pos = []
 
     # loop through the dimensions in position
     for i in range(dimensions):
@@ -50,6 +67,7 @@ def update_position(position, velocity, polygons):
 
 
     return new_pos
+
 def update_velocity(velocity, acceleration):
     """
     Update the velocity of a particle and returns the new velocity.
@@ -98,4 +116,3 @@ def update_acceleration(position_particle, velocity_particle, position_particles
 
     # print(new_acceleration)
     return new_acceleration
-

@@ -469,7 +469,6 @@ def update_position_object_vertex(polygon, position_obj, ang_vel_object):
 
 # ----------------------- Forces Functions ------------------------------
 
-
 def torque_force(polygon, position_obj, ang_vel_object, velocity_particle, position_particle):
     """
     Calcualte the torque on an object due to a particle hitting it.
