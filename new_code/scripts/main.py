@@ -7,27 +7,30 @@ from environment import pop_box
 from results import allignment, show_path_2D
 from agents import update_system
 from rotors import polygon, objects, update_system_object
+from constants import bound_cond, N, L, k, M, delta_t, spikes, U, dimensions, time_pause
 
 import time
 import math
 import random
+import matplotlib.pyplot as plt 
 
-# constants
-bound_cond = True   # set the boundry conditions on or off
-L = 5 # size of the box
-N = 25  # number of particles
-k = 7 # nearest neighbours
-M = 1   # number of objects
-delta_t = 1     # time increment
+#
+# # constants
+# bound_cond = True   # set the boundry conditions on or off
+# L = 5 # size of the box
+# N = 2  # number of particles
+# k = 7 # nearest neighbours
+# M = 1   # number of objects
+# delta_t = 1     # time increment
+#
+# spikes = 15 # number of spikes
+# U = 1000   # number of updates
+# dimensions = 2   # dimensions
+# time_pause = 1e-7 # time pause for interactive graph
 
-spikes = 15 # number of spikes
-U = 1000   # number of updates
-dimensions = 2   # dimensions
-time_pause = 1e-7 # time pause for interactive graph
 
 
-
-def one_run(plot = False):
+def one_run(plot = True):
     """
     One simulation of a total run by the system.
     """

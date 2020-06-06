@@ -3,18 +3,19 @@ Envvironement that will contain the simulation.
 """
 
 from utils import centroid, rescale
+from constants import N, v_mag, L, delta_t, dimensions
 
 import numpy as np
 import random
 import matplotlib.pyplot as plt
 import matplotlib.path as mpltPath
 import matplotlib.cm as cm
-
-N = 25  # number of particles
-v_mag = 0.05      # total magnitude of each particle velocity
-L = 5 # size of the box
-delta_t = 1 # time increment
-dimensions = 2   # dimensions
+#
+# N = 2  # number of particles
+# v_mag = 0.05      # total magnitude of each particle velocity
+# L = 5 # size of the box
+# delta_t = 1 # time increment
+# dimensions = 2   # dimensions
 
 
 def pop_box(polygons):

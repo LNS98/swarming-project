@@ -1,8 +1,22 @@
 import numpy as np
+import math
 
-# constants 
+from constants import L
+
+# constants
 L = 5 # size of the box
 
+
+def angle_to_xy(magnitude, angle):
+    """
+    Takes an angle in radians as input as returns x and y poistion for the corresponding angle
+    using r as v_mag, a predifined value which is the magnitude of the velocity.
+    """
+    # get x using x = cos(angle) and y = sin(angle)
+    x = magnitude * math.cos(angle)
+    y = magnitude * math.sin(angle)
+
+    return [x, y]
 
 def distance_fun(pos1, pos2):
     """

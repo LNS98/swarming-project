@@ -6,17 +6,21 @@ import numpy as np
 from forces import allignment_force, error_force, contact_force, part_repulsive_force
 from environment import periodic_boundaries
 from utils import rescale
+from constants import alpha, beta, gamma, N, delta_t, mass_par, dimensions, v_mag, bound_cond
 
-# force parrameters
-alpha = 0 # stregnth of repulsive force between to the particles
-beta = 0 # stregnth of the force due to the objects on the particles
-gamma = 1 # stregnth of allignment
-
-N = 100  # number of particles
-delta_t = 1     # time increment
-mass_par = 1 # masss of the particles
-
-bound_cond = True
+# # force parrameters
+# alpha = 0 # stregnth of repulsive force between to the particles
+# beta = 0 # stregnth of the force due to the objects on the particles
+# gamma = 1 # stregnth of allignment
+#
+# N = 2  # number of particles
+# delta_t = 1     # time increment
+# mass_par = 1 # masss of the particles
+# dimensions = 2
+# v_mag = 0.05      # total magnitude of each particle velocity
+#
+#
+# bound_cond = True
 
 def update_system(positions, velocities, positions_obj, polygons):
     """
@@ -111,7 +115,7 @@ def update_acceleration(position_particle, velocity_particle, position_particles
 
 
     new_acceleration = (alpha * force_particles + gamma * allignment_force(position_particle, velocity_particle, position_particles, velocity_particles) ) / mass_par
-    new_acceleration += error_force(velocity_particle + new_acceleration*delta_t) / mass_par
+    # new_acceleration += error_force(velocity_particle + new_acceleration*delta_t) / mass_par
     new_acceleration += (beta * force_object) / mass_par
 
     # print(new_acceleration)

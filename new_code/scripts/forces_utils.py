@@ -4,13 +4,15 @@ Utils functions used in Forces.
 
 import numpy as np
 from utils import per_boun_distance
-
-# constants
-bound_cond = True   # set the boundry conditions on or off
-L = 5 # size of the box
-N = 100  # number of particles
-r = 1.0   # radius of allignment
-dimensions = 2   # dimensions
+from constants import bound_cond, L, N, r, dimensions, k
+# 
+# # constants
+# bound_cond = True   # set the boundry conditions on or off
+# L = 5 # size of the box
+# N = 2  # number of particles
+# r = 1.0   # radius of allignment
+# dimensions = 2   # dimensions
+# k = 2 # nearest neighbours
 
 
 

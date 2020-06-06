@@ -1,14 +1,25 @@
 """
 Functions used to get results for the code.
 """
-from utils import centroid, distance_fun
 
 import math
-N = 25 # number of particles
-v_mag = 0.05      # total magnitude of each particle velocity
-M = 1 # rotor numbers
-delta_t = 1 # time increment
-L = 5 # size of the box
+import numpy as np
+import matplotlib
+matplotlib.use('TkAgg')
+import matplotlib.pyplot as plt
+import matplotlib.path as mpltPath
+import matplotlib.cm as cm
+
+
+from utils import centroid, distance_fun
+from constants import N, v_mag, M, L, delta_t, bound_cond, time_pause
+
+
+# N = 2 # number of particles
+# v_mag = 0.05      # total magnitude of each particle velocity
+# M = 1 # rotor numbers
+# delta_t = 1 # time increment
+# L = 5 # size of the box
 
 def allignment(velocities):
     """

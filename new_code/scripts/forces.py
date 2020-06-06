@@ -3,24 +3,27 @@ Force functions used to simulate the physics in the code.
 """
 
 import math
+import random
 import numpy as np
+
 from shapely.geometry import LineString, Point, LinearRing, Polygon
-from utils import rescale, per_boun_distance, distance_fun
+from utils import rescale, per_boun_distance, distance_fun, angle_to_xy
 from forces_utils import particles_in_radius, k_particles
+from constants import bound_cond, v_mag, delta_t, r_c, r_e, r_a, r_o, fric_force, noise, model
 
-# constants
-bound_cond = True   # set the boundry conditions on or off
-v_mag = 0.05      # total magnitude of each particle velocity
-delta_t = 1     # time increment
-r_c = 0.05 # radius within repulsion
-r_e = 0.5 # radius of equilibrium between the particles
-r_a = 0.8 # radius when attraction starts
-r_o = v_mag # radius of attraction between the particels and the objects
-fric_force = 0.2  # frictional forrce of the object when rotating
-noise = 2*math.pi  # noise added to the velocity
-
-# picking a model
-model = "kNN" # select SVM for standard Vicsek Model and kNN for nearest neighbours
+# # constants
+# bound_cond = True   # set the boundry conditions on or off
+# v_mag = 0.05      # total magnitude of each particle velocity
+# delta_t = 1     # time increment
+# r_c = 0.05 # radius within repulsion
+# r_e = 0.5 # radius of equilibrium between the particles
+# r_a = 0.8 # radius when attraction starts
+# r_o = v_mag # radius of attraction between the particels and the objects
+# fric_force = 0.2  # frictional forrce of the object when rotating
+# noise = 2*math.pi  # noise added to the velocity
+#
+# # picking a model
+# model = "kNN" # select SVM for standard Vicsek Model and kNN for nearest neighbours
 
 
 def torque_force(polygon, position_obj, ang_vel_object, velocity_particle, position_particle):
