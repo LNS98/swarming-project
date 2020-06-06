@@ -12,25 +12,23 @@ from constants import bound_cond, N, L, k, M, delta_t, spikes, U, dimensions, ti
 import time
 import math
 import random
-import matplotlib.pyplot as plt 
-
-#
-# # constants
-# bound_cond = True   # set the boundry conditions on or off
-# L = 5 # size of the box
-# N = 2  # number of particles
-# k = 7 # nearest neighbours
-# M = 1   # number of objects
-# delta_t = 1     # time increment
-#
-# spikes = 15 # number of spikes
-# U = 1000   # number of updates
-# dimensions = 2   # dimensions
-# time_pause = 1e-7 # time pause for interactive graph
+import matplotlib.pyplot as plt
 
 
+def simulation():
+    # initialise environment
+    env = Environment()
 
-def one_run(plot = True):
+    # for each step - U is no of steps
+    for i in range(n_steps):
+        env.step()
+
+        if disp:
+            env.display()
+
+    return
+
+def simulation_old(plot = True):
     """
     One simulation of a total run by the system.
     """
@@ -90,5 +88,5 @@ def one_run(plot = True):
 
 if __name__ == "__main__":
     start = time.time()
-    one_run()
+    simulation()
     print("------------------------- Time Taken: {} -------------------".format(time.time() - start))

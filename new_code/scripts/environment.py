@@ -10,12 +10,65 @@ import random
 import matplotlib.pyplot as plt
 import matplotlib.path as mpltPath
 import matplotlib.cm as cm
-#
-# N = 2  # number of particles
-# v_mag = 0.05      # total magnitude of each particle velocity
-# L = 5 # size of the box
-# delta_t = 1 # time increment
-# dimensions = 2   # dimensions
+
+
+class Environment:
+    # some constants
+    # M = 1   # number of objects
+    # v_mag = 0.05      # total magnitude of each particle velocity
+    # delta_t = 1     # time increment
+
+    # # distance metrics in the code
+    # r = 1.0   # radius of allignment
+    # r_c = 0.05 # radius within repulsion
+    # r_e = 0.5 # radius of equilibrium between the particles
+    # r_a = 0.8 # radius when attraction starts
+    # r_o = v_mag # radius of attraction between the particels and the objects
+    # dimensions = 2   # dimensions
+    # time_pause = 1e-2 # time pause for interactive graph
+
+
+
+    def __init__(self):
+        # height of box
+        # width of box
+
+        # number of particles
+
+        # whether periodic boundary conditions
+
+        # forces parameters
+        # alpha = 0 # stregnth of repulsive force between to the particles
+        # beta = 1 # stregnth of the force due to the objects on the particles
+        # gamma = 1 # stregnth of allignment
+        # fric_force = 0.2  # frictional force of the object when rotating
+        # noise = 1  # noise added to the velocity
+
+        # model type (SVM, kNN)
+
+        pass
+
+    def _pop_box(self):
+        # self.agents = []
+
+        # create rotor at centre of box
+
+        # for number of partciles
+            # get x y coords - if not in rotor, init agent
+
+        pass
+
+    def step(self):
+        # for number of particles
+
+            # agent.update()
+
+        # update the rotor
+        pass
+
+    def display(self):
+        # show current environ image
+        pass
 
 
 def pop_box(polygons):

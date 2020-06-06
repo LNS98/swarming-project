@@ -15,12 +15,6 @@ from utils import centroid, distance_fun
 from constants import N, v_mag, M, L, delta_t, bound_cond, time_pause
 
 
-# N = 2 # number of particles
-# v_mag = 0.05      # total magnitude of each particle velocity
-# M = 1 # rotor numbers
-# delta_t = 1 # time increment
-# L = 5 # size of the box
-
 def allignment(velocities):
     """
     Calculates the net allignment of the velocities of all the particles and

@@ -9,16 +9,6 @@ from constants import L, b, M, delta_t, mass_object, mom_inertia, dimensions, be
 import numpy as np
 import math
 
-# # constants
-# L = 5 # size of the box
-# b = L * 0.2
-# M = 1   # number of objects
-# delta_t = 1     # time increment
-# beta = 0  # strenght of the force due to the objects on the particles
-# mass_object = 100 # masss of the object
-# mom_inertia = (1/3) * mass_object
-# dimensions = 2
-
 
 def polygon(origin, a, angle_diff, spikes):
     """

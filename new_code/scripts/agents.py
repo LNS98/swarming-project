@@ -8,20 +8,6 @@ from environment import periodic_boundaries
 from utils import rescale
 from constants import alpha, beta, gamma, N, delta_t, mass_par, dimensions, v_mag, bound_cond
 
-# # force parrameters
-# alpha = 0 # stregnth of repulsive force between to the particles
-# beta = 0 # stregnth of the force due to the objects on the particles
-# gamma = 1 # stregnth of allignment
-#
-# N = 2  # number of particles
-# delta_t = 1     # time increment
-# mass_par = 1 # masss of the particles
-# dimensions = 2
-# v_mag = 0.05      # total magnitude of each particle velocity
-#
-#
-# bound_cond = True
-
 def update_system(positions, velocities, positions_obj, polygons):
     """
     Updates the positons and velocities of ALL the particles in a system.
