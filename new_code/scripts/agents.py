@@ -2,11 +2,12 @@
 File containing functions for agents/particles.
 """
 import numpy as np
+import random 
 
-from forces import allignment_force, error_force, contact_force, part_repulsive_force
-from environment import periodic_boundaries
+# from forces import allignment_force, error_force, contact_force, part_repulsive_force
+# from environment import periodic_boundaries
 from utils import rescale
-from constants import alpha, beta, gamma, N, delta_t, mass_par, dimensions, v_mag, bound_cond
+# from constants import alpha, beta, gamma, N, delta_t, mass_par, dimensions, v_mag, bound_cond
 
 
 class Agent:

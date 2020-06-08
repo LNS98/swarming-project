@@ -64,8 +64,8 @@ class Environment:
         self.rotor = Rotor((0.5*self.L, 0.5*self.L), 15, self.L*0.1, self.L*0.2, np.pi/2)
 
         agent_no = 0
-        random_coords = (random.uniform(0, self.L), random.uniform(0, self.L))
         while agent_no < self.N:
+            random_coords = (random.uniform(0, self.L), random.uniform(0, self.L))
             if self._coord_outside_rotor(random_coords):
                 self.agents.append(Agent(random_coords))
                 agent_no += 1
@@ -100,7 +100,15 @@ class Environment:
         rotor_pts = np.array(list(map(lambda x: x*self.mag,  self.rotor.verticies)))
         rotor_pts = rotor_pts.reshape((-1,1,2))
         cv2.fillPoly(self.image, np.int32([rotor_pts]), (0,255,255))
+        
+        # display agents as circles 
+        for agent in self.agents:
+            agent_centre = (int(agent.position[0]*self.mag),
+                            int(agent.position[1]*self.mag))
+            agent_radius = int(self.mag*0.01)
 
+            cv2.circle(self.image, agent_centre, agent_radius, (0,0,255), -1)
+        
         cv2.imshow('Simulation', self.image)
         cv2.waitKey(0)
 
