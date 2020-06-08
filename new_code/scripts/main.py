@@ -3,21 +3,22 @@ Main code that will run the simulation.
 """
 
 
-from environment import pop_box
-from results import allignment, show_path_2D
-from agents import update_system
-from rotors import polygon, objects, update_system_object
-from constants import bound_cond, N, L, k, M, delta_t, spikes, U, dimensions, time_pause
+#from environment import pop_box
+#from results import allignment, show_path_2D
+#from agents import update_system
+#from rotors import polygon, objects, update_system_object
+#from constants import bound_cond, N, L, k, M, delta_t, spikes, U, dimensions, time_pause
+#
+from environment import Environment
 
 import time
 import math
 import random
-import matplotlib.pyplot as plt
 
 
-def simulation():
+def simulation(L, N, n_steps, disp=True):
     # initialise environment
-    env = Environment()
+    env = Environment(L, N)
 
     # for each step - U is no of steps
     for i in range(n_steps):
@@ -87,6 +88,11 @@ def simulation_old(plot = True):
 
 
 if __name__ == "__main__":
+    
+    L = 5
+    N = 10
+    n_steps = 10
+
     start = time.time()
-    simulation()
+    simulation(L, N, n_steps)
     print("------------------------- Time Taken: {} -------------------".format(time.time() - start))

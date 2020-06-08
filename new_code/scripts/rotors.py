@@ -2,12 +2,64 @@
 Rotor code that contain the objects/rotors/polygons for the simualtion.
 """
 
-from utils import centroid
+from utils import centroid, clockwiseangle_and_distance
 from forces import torque_force
-from constants import L, b, M, delta_t, mass_object, mom_inertia, dimensions, beta
+from constants import L, outer_radius, M, delta_t, mass_object, mom_inertia, dimensions, beta
 
 import numpy as np
 import math
+
+
+class Rotor:
+
+    def __init__(self, origin, spikes, inner_radius, outer_radius, angle_diff):
+        
+        # position 
+        self.position = origin
+        # velocity
+        self.velocity = (0, 0)
+        # acceleration 
+        self.acceleration = (0, 0)
+        # verticies
+        self.verticies = self._get_verticies(origin, spikes, inner_radius, outer_radius, angle_diff) 
+
+        pass 
+    
+    def _get_verticies(self, origin, spikes, inner_radius, outer_radius, angle_diff):
+
+        # lists to store the pts
+        pts_in = []
+        pts_out = []
+        pts_tot = []
+
+        x_0, y_0 = origin  # centre of circle
+
+        for i in range(spikes):
+            value_out = [x_0 + outer_radius * np.cos(2 * np.pi * i / spikes), y_0 + outer_radius * np.sin(2 * np.pi * i / spikes)]
+            value_in = [x_0 + inner_radius * np.cos(angle_diff + 2 * np.pi * i / spikes), y_0 + inner_radius * np.sin(angle_diff + 2 * np.pi * i / spikes)]
+            pts_out.append(value_out)
+            pts_in.append(value_in)
+
+        sorted_out = sorted(pts_out, key=clockwiseangle_and_distance)
+        sorted_in = sorted(pts_in, key=clockwiseangle_and_distance)
+
+        for i in range(len(sorted_in)):
+            pts_tot.append(sorted_out[i])
+            pts_tot.append(sorted_in[i])
+
+        return np.array(pts_tot)
+
+   
+
+    def update_pos(self):
+        pass
+
+    def update_vel(self):
+        pass
+
+    def update_acc(self):
+        pass 
+
 
 
 def polygon(origin, a, angle_diff, spikes):
@@ -15,38 +67,6 @@ def polygon(origin, a, angle_diff, spikes):
     Define the polygon from the points on the verticies.
     """
     refvec = (0, 1)
-
-    def clockwiseangle_and_distance(point):
-        """
-        Finds angle between point and ref vector ffor sortinf points in rotor
-        in order of angles
-        """
-
-
-        # Vector between point and the origin: v = p - o
-        vector = [point[0]-origin[0], point[1]-origin[1]]
-
-        # Length of vector: ||v||
-        lenvector = math.hypot(vector[0], vector[1])
-
-        # If length is zero there is no angle
-        if lenvector == 0:
-            return -math.pi, 0
-
-        # Normalize vector: v/||v||
-        normalized = [vector[0]/lenvector, vector[1]/lenvector]
-        dotprod  = normalized[0]*refvec[0] + normalized[1]*refvec[1]     # x1*x2 + y1*y2
-        diffprod = refvec[1]*normalized[0] - refvec[0]*normalized[1]     # x1*y2 - y1*x2
-
-        angle = math.atan2(diffprod, dotprod)
-
-        # Negative angles represent counter-clockwise angles so we need to subtract them
-        # from 2*pi (360 degrees)
-        if angle < 0:
-            return 2*math.pi+angle
-        # I return first the angle because that's the primary sorting criterium
-        return angle
-
 
     pts_in = []
     pts_out = []
@@ -56,7 +76,7 @@ def polygon(origin, a, angle_diff, spikes):
 
 
     for i in range(spikes):
-        value_out = [x_0 + b * np.cos(2 * np.pi * i / spikes), y_0 + b * np.sin(2 * np.pi * i / spikes)]
+        value_out = [x_0 + outer_radius * np.cos(2 * np.pi * i / spikes), y_0 + b * np.sin(2 * np.pi * i / spikes)]
         value_in = [x_0 + a * np.cos(angle_diff + 2 * np.pi * i / spikes), y_0 + a * np.sin(angle_diff + 2 * np.pi * i / spikes)]
         pts_out.append(value_out)
         pts_in.append(value_in)
@@ -69,6 +89,7 @@ def polygon(origin, a, angle_diff, spikes):
         pts_tot.append(sorted_in[i])
 
     return pts_tot
+
 
 
 def objects(polygons):

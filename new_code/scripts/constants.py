@@ -8,7 +8,7 @@ M = 1   # number of objects
 v_mag = 0.05      # total magnitude of each particle velocity
 delta_t = 1     # time increment
 mass_par = 1 # masss of the particles
-b = L*0.2 # outer size of radius of object
+outer_radius = L*0.2 # outer size of radius of object
 
 mass_object = 500 # masss of the object
 mom_inertia = (1/3) * mass_object # PERHAPS CHANGE A BIT BUT ITS JUST A DAMPING TERM SO DON'T WORRY TOO MUCH
