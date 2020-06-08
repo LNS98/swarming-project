@@ -32,7 +32,7 @@ class Environment:
     TIME_PAUSE = 1e-2 # time pause for interactive graph
     PERIODIC_BOUNDARIES = True
 
-    def __init__(self, L, N, mag=200):
+    def __init__(self, L, N, mag=800):
         
         self.mag = mag
         self.L = L # height of box
@@ -64,7 +64,8 @@ class Environment:
             # get x y coords - if not in rotor, init agent
 
         self.rotor = Rotor((0.5*self.L, 0.5*self.L), 15, self.L*0.1, self.L*0.2, np.pi/2)
-
+        
+        
     def step(self):
         # for number of particles
 
@@ -77,12 +78,10 @@ class Environment:
         
         self.image.fill(0)
 
-        # draw rotor
-        for i in range(len(self.rotor.verticies)):
-            # get the positions of the start and end of the lines 
-            start = (int(self.mag*self.rotor.verticies[i][0]), int(self.mag*self.rotor.verticies[i][1]))
-            end = (int(self.mag*self.rotor.verticies[(i+1)%len(self.rotor.verticies)][0]), int(self.mag*self.rotor.verticies[(i+1)%len(self.rotor.verticies)][1]))
-            cv2.line(self.image, start, end, (0, 20, 200), 1)
+        # rotor as a polygon
+        rotor_pts = np.array(list(map(lambda x: x*self.mag,  self.rotor.verticies)))
+        rotor_pts = rotor_pts.reshape((-1,1,2))
+        cv2.fillPoly(self.image, np.int32([rotor_pts]), (0,255,255))
 
         cv2.imshow('Simulation', self.image)
         cv2.waitKey(0)
@@ -205,8 +204,9 @@ def show_path_2D(start, end, coordinates, polygons, clear = True):
     return None
 
 
-# if __name__ == "__main__":
-#     start = time.time()
-#     main()
-#     # help()
-#     print("------------------------- Time Taken: {} -------------------".format(time.time() - start))
+if __name__ == "__main__":
+    L = 1
+    N = 3
+    env = Environment(L, N)
+
+    env.display()
