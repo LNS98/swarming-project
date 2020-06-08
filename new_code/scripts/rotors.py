@@ -13,18 +13,20 @@ import math
 class Rotor:
 
     def __init__(self, origin, spikes, inner_radius, outer_radius, angle_diff):
-        
-        # position 
+
+        # position
         self.position = origin
         # velocity
         self.velocity = (0, 0)
-        # acceleration 
+        # acceleration
         self.acceleration = (0, 0)
+        # Outer radius
+        self.outer_rad = outer_radius
         # verticies
-        self.verticies = self._get_verticies(origin, spikes, inner_radius, outer_radius, angle_diff) 
+        self.verticies = self._get_verticies(origin, spikes, inner_radius, outer_radius, angle_diff)
 
-        pass 
-    
+        pass
+
     def _get_verticies(self, origin, spikes, inner_radius, outer_radius, angle_diff):
 
         # lists to store the pts
@@ -49,7 +51,7 @@ class Rotor:
 
         return np.array(pts_tot)
 
-   
+
 
     def update_pos(self):
         pass
@@ -58,7 +60,7 @@ class Rotor:
         pass
 
     def update_acc(self):
-        pass 
+        pass
 
 
 
