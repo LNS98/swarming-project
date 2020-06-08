@@ -2,11 +2,15 @@
 Envvironement that will contain the simulation.
 """
 
-from utils import centroid, rescale
-from constants import N, v_mag, L, delta_t, dimensions
+#from utils import centroid, rescale
+#from constants import N, v_mag, L, delta_t, dimensions
+
+from rotors import Rotor
 
 import numpy as np
 import random
+import cv2
+
 import matplotlib.pyplot as plt
 import matplotlib.path as mpltPath
 import matplotlib.cm as cm
@@ -14,29 +18,32 @@ import matplotlib.cm as cm
 
 class Environment:
     # some constants
-    # M = 1   # number of objects
-    # v_mag = 0.05      # total magnitude of each particle velocity
-    # delta_t = 1     # time increment
+    M = 1   # number of objects
+    V_MAG = 0.05      # total magnitude of each particle velocity
+    DELTA_T = 1     # time increment
 
     # # distance metrics in the code
-    # r = 1.0   # radius of allignment
-    # r_c = 0.05 # radius within repulsion
-    # r_e = 0.5 # radius of equilibrium between the particles
-    # r_a = 0.8 # radius when attraction starts
-    # r_o = v_mag # radius of attraction between the particels and the objects
-    # dimensions = 2   # dimensions
-    # time_pause = 1e-2 # time pause for interactive graph
+    R = 1.0   # radius of allignment
+    R_C = 0.05 # radius within repulsion
+    R_E = 0.5 # radius of equilibrium between the particles
+    R_A = 0.8 # radius when attraction starts
+    R_O = 0.05 # radius of attraction between the particels and the objects
+    DIMENSIONS = 2   # dimensions
+    TIME_PAUSE = 1e-2 # time pause for interactive graph
+    PERIODIC_BOUNDARIES = True
 
-
-
-    def __init__(self):
-        # height of box
-        # width of box
-
-        # number of particles
-
-        # whether periodic boundary conditions
-
+    def __init__(self, L, N, mag=800):
+        
+        self.mag = mag
+        self.L = L # height of box
+        self.N = N # number of particles
+       
+        # image that contains simulation 
+        self.image = np.zeros([int(self.mag*self.L),
+                               int(self.mag*self.L),
+                               3], dtype=np.uint8)
+        
+        self._pop_box()
         # forces parameters
         # alpha = 0 # stregnth of repulsive force between to the particles
         # beta = 1 # stregnth of the force due to the objects on the particles
@@ -50,14 +57,15 @@ class Environment:
 
     def _pop_box(self):
         # self.agents = []
-
+        
         # create rotor at centre of box
 
         # for number of partciles
             # get x y coords - if not in rotor, init agent
 
-        pass
-
+        self.rotor = Rotor((0.5*self.L, 0.5*self.L), 15, self.L*0.1, self.L*0.2, np.pi/2)
+        
+        
     def step(self):
         # for number of particles
 
@@ -67,8 +75,17 @@ class Environment:
         pass
 
     def display(self):
-        # show current environ image
-        pass
+        
+        self.image.fill(0)
+
+        # rotor as a polygon
+        rotor_pts = np.array(list(map(lambda x: x*self.mag,  self.rotor.verticies)))
+        rotor_pts = rotor_pts.reshape((-1,1,2))
+        cv2.fillPoly(self.image, np.int32([rotor_pts]), (0,255,255))
+
+        cv2.imshow('Simulation', self.image)
+        cv2.waitKey(0)
+
 
 
 def pop_box(polygons):
@@ -187,8 +204,9 @@ def show_path_2D(start, end, coordinates, polygons, clear = True):
     return None
 
 
-# if __name__ == "__main__":
-#     start = time.time()
-#     main()
-#     # help()
-#     print("------------------------- Time Taken: {} -------------------".format(time.time() - start))
+if __name__ == "__main__":
+    L = 1
+    N = 3
+    env = Environment(L, N)
+
+    env.display()
