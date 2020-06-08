@@ -6,6 +6,7 @@ Envvironement that will contain the simulation.
 #from constants import N, v_mag, L, delta_t, dimensions
 
 from rotors import Rotor
+from agents import Agent
 
 import numpy as np
 import random
@@ -32,17 +33,18 @@ class Environment:
     TIME_PAUSE = 1e-2 # time pause for interactive graph
     PERIODIC_BOUNDARIES = True
 
+
     def __init__(self, L, N, mag=800):
         
         self.mag = mag
         self.L = L # height of box
         self.N = N # number of particles
-       
-        # image that contains simulation 
+
+        # image that contains simulation
         self.image = np.zeros([int(self.mag*self.L),
                                int(self.mag*self.L),
                                3], dtype=np.uint8)
-        
+
         self._pop_box()
         # forces parameters
         # alpha = 0 # stregnth of repulsive force between to the particles
@@ -56,14 +58,30 @@ class Environment:
         pass
 
     def _pop_box(self):
-        # self.agents = []
-        
+        self.agents = []
+
         # create rotor at centre of box
-
-        # for number of partciles
-            # get x y coords - if not in rotor, init agent
-
         self.rotor = Rotor((0.5*self.L, 0.5*self.L), 15, self.L*0.1, self.L*0.2, np.pi/2)
+
+        agent_no = 0
+        random_coords = (random.uniform(0, self.L), random.uniform(0, self.L))
+        while agent_no < self.N:
+            if self._coord_outside_rotor(random_coords):
+                self.agents.append(Agent(random_coords))
+                agent_no += 1
+
+    def _coord_outside_rotor(self, coordinates):
+        """
+        If coordinates are outside of rotor, return True
+        """
+        rtr_center = self.rotor.position
+        pos_vector = (rtr_center[0] - coordinates[0]) ** 2 + (rtr_center[1] - coordinates[1]) ** 2
+        buffer = (self.rotor.outer_rad + 5 * self.V_MAG * self.DELTA_T) ** 2
+
+        # If the random position is inside rotor, return False
+        if pos_vector < buffer:
+            return False
+        return True
         
         
     def step(self):
@@ -75,7 +93,7 @@ class Environment:
         pass
 
     def display(self):
-        
+
         self.image.fill(0)
 
         # rotor as a polygon

@@ -8,6 +8,24 @@ from environment import periodic_boundaries
 from utils import rescale
 from constants import alpha, beta, gamma, N, delta_t, mass_par, dimensions, v_mag, bound_cond
 
+
+class Agent:
+    MASS = 1
+    V_MAG = 0.05
+
+    def __init__(self, coords):
+        self.position = coords
+        self.velocity = rescale(self.V_MAG, (random.uniform(-1, 1), random.uniform(-1, 1)))
+        self.acceleration = (0, 0)
+
+
+
+
+
+
+
+
+#----------------------------------------------------------------------------
 def update_system(positions, velocities, positions_obj, polygons):
     """
     Updates the positons and velocities of ALL the particles in a system.
