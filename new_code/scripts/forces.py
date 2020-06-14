@@ -153,28 +153,30 @@ def inverse_force(i, j):
 
     return np.array([F_x, F_y])
 
-def allignment_force(position_particle, velocity_particle, position_particles, velocities_particles):
+def allignment_force(current_agent, agents, R):
     """
     Add a force which changes the velocity in the direction of the desired one.
     """
-    # convert the velocities to numpy arrays
-    velocity_particle = np.array(velocity_particle)
+    position_particle = current_agent.position["t"]
+    velocity_particle = current_agent.velocity
+
 
     # If using the Vicsek Model get velocity of particles in radius
     if model == "SVM":
-        vel_in_r = np.array(particles_in_radius(position_particle, position_particles, velocities_particles)[0])
+        agents_in_r = particles_in_radius(position_particle, agents, R)
 
     # If using kNN neighbours get the velocity of k nearest neighbours
     if model == "kNN":
         vel_in_r = np.array(k_particles(position_particle, position_particles, velocities_particles)[0])
 
     # get the average value of that velocity
+    vel_in_r = np.array([agent.velocity for agent in agents_in_r])
     vel_wanted = np.mean(vel_in_r, axis = 0)
 
-    # get the force by subtracting the current vel from the desirerd one
-    Force = vel_wanted - velocity_particle
+    # get the force by subtracting the current vel from the desired one
+    force = vel_wanted - velocity_particle
 
-    return Force
+    return force
 
 def chate_rep_att_force(i, j):
     """

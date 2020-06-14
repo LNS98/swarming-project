@@ -114,7 +114,6 @@ def rescale(magnitude, vector):
 
     # multiply to rescale and make it a list
     new_vec = (magnitude / mag) * vec
-    new_vec = list(new_vec)
 
     return new_vec
 
@@ -136,4 +135,4 @@ def per_boun_distance(i, j):
     out_distance_y = L - in_distance_y
     distance_y = min(in_distance_y, out_distance_y)
 
-    return distance_x, distance_y
+    return np.array([distance_x, distance_y])

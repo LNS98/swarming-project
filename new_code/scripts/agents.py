@@ -18,13 +18,13 @@ class Agent:
     def __init__(self, coords):
         self.position = {"t": coords, "t+1": coords}
         self.velocity = rescale(self.V_MAG, (random.uniform(-1, 1), random.uniform(-1, 1)))
-        self.acceleration = (0, 0)
+        self.acceleration = np.array([0, 0])
 
 
     def update(self, force):
         # calc acceleration force/mass
         self.acceleration = force / self.MASS
-        
+
         # v_t+1 = v_t + acc*delta_t
         self.velocity = rescale(self.V_MAG, self.velocity + self.acceleration*self.DELTA_T)
 

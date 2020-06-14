@@ -5,7 +5,7 @@ Utils functions used in Forces.
 import numpy as np
 from utils import per_boun_distance
 from constants import bound_cond, L, N, r, dimensions, k
-# 
+#
 # # constants
 # bound_cond = True   # set the boundry conditions on or off
 # L = 5 # size of the box
@@ -16,7 +16,7 @@ from constants import bound_cond, L, N, r, dimensions, k
 
 
 
-def particles_in_radius(position_particle, position_particles, velocities_particles):
+def particles_in_radius(position_particle, agents, R):
     """
     Checks and records the particles which are within radius r.
     Returns the veloicities and positions of those particles that
@@ -24,42 +24,21 @@ def particles_in_radius(position_particle, position_particles, velocities_partic
     """
 
     # array with all indecies of all particles within range for velocities
-    velocities_within_r = []
-
-    # array with all indecies of all particles within range for positions
-    positions_within_r = []
+    agents_within_R = []
 
     # check over all particles in positions
-    for index in range(N):
+    for index, agent in enumerate(agents):
         # variable used to aid if its in radius
         in_size = True
 
         # check if it is smaller than the radius in all
-        for i in range(dimensions):
+        distance = per_boun_distance(position_particle, agent.position["t"])
 
-            if bound_cond == True:
-                inside_distance = abs(position_particle[i] - position_particles[index][i])
-                wrap_distance = L-inside_distance
-                distance = min(inside_distance, wrap_distance)
-            else:
-                distance = abs(position_particle[i] - position_particles[index][i])
+        if np.linalg.norm(distance) < R:
+            agents_within_R.append(agent)
 
-            # if the size is over then break out of loop as it won't be in radius
-            if distance > r:
-                in_size = False
-                break
+        return agents_within_R
 
-        # If it is within radius, add velocity to all velociites within r
-        if in_size == True:
-            # get the index of the particle for velocity
-            velocities_within_r.append(velocities_particles[index])
-
-            # get the index of the particle for position
-            # and add position to all positions within r
-            positions_within_r.append(position_particles[index])
-
-
-    return velocities_within_r, positions_within_r
 
 def k_particles(chosen_particle, positions, velocities):
     """

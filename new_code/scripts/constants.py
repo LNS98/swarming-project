@@ -29,7 +29,7 @@ noise = 1  # noise added to the velocity
 
 
 # picking a model
-model = "kNN" # select SVM for standard Vicsek Model and kNN for nearest neighbours
+model = "SVM" # select SVM for standard Vicsek Model and kNN for nearest neighbours
 
 spikes = 15
 U = 1000   # number of updates

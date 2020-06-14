@@ -7,7 +7,7 @@ Envvironement that will contain the simulation.
 
 from rotors import Rotor
 from agents import Agent
-from forces import part_repulsive_force
+from forces import part_repulsive_force, allignment_force
 
 import numpy as np
 import random
@@ -101,6 +101,8 @@ class Environment:
         for agent in self.agents:
             if current_agent.position != agent.position:
                 force += part_repulsive_force(current_agent.position["t"], agent.position["t"])
+
+        force += allignment_force(current_agent, self.agents, self.R)
 
         return force
 
