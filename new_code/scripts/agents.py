@@ -2,7 +2,7 @@
 File containing functions for agents/particles.
 """
 import numpy as np
-import random 
+import random
 
 # from forces import allignment_force, error_force, contact_force, part_repulsive_force
 # from environment import periodic_boundaries
@@ -13,11 +13,27 @@ from utils import rescale
 class Agent:
     MASS = 1
     V_MAG = 0.05
+    DELTA_T = 1
 
     def __init__(self, coords):
-        self.position = coords
+        self.position = {"t": coords, "t+1": coords}
         self.velocity = rescale(self.V_MAG, (random.uniform(-1, 1), random.uniform(-1, 1)))
         self.acceleration = (0, 0)
+
+
+    def update(self, force):
+        # calc acceleration force/mass
+        self.acceleration = force / self.MASS
+        
+        # v_t+1 = v_t + acc*delta_t
+        self.velocity = rescale(self.V_MAG, self.velocity + self.acceleration*self.DELTA_T)
+
+        #  x_t+1 = x_t + v_t+1*delta_t
+        self.position["t+1"] = tuple(map(lambda x, y, z: (x+y)%z,
+                                                self.position["t"],
+                                                self.velocity*self.DELTA_T,
+                                                [1, 1]))
+
 
 
 

@@ -7,6 +7,7 @@ Envvironement that will contain the simulation.
 
 from rotors import Rotor
 from agents import Agent
+from forces import part_repulsive_force
 
 import numpy as np
 import random
@@ -35,7 +36,7 @@ class Environment:
 
 
     def __init__(self, L, N, mag=800):
-        
+
         self.mag = mag
         self.L = L # height of box
         self.N = N # number of particles
@@ -82,15 +83,26 @@ class Environment:
         if pos_vector < buffer:
             return False
         return True
-        
-        
+
+
     def step(self):
         # for number of particles
-
-            # agent.update()
+        for agent in self.agents:
+            force = self._force(agent)
+            agent.update(force)
 
         # update the rotor
-        pass
+
+        for agent in self.agents:
+            agent.position["t"] = agent.position["t+1"]
+
+    def _force(self, current_agent):
+        force = np.array([0., 0.])
+        for agent in self.agents:
+            if current_agent.position != agent.position:
+                force += part_repulsive_force(current_agent.position["t"], agent.position["t"])
+
+        return force
 
     def display(self):
 
@@ -100,17 +112,17 @@ class Environment:
         rotor_pts = np.array(list(map(lambda x: x*self.mag,  self.rotor.verticies)))
         rotor_pts = rotor_pts.reshape((-1,1,2))
         cv2.fillPoly(self.image, np.int32([rotor_pts]), (0,255,255))
-        
-        # display agents as circles 
+
+        # display agents as circles
         for agent in self.agents:
-            agent_centre = (int(agent.position[0]*self.mag),
-                            int(agent.position[1]*self.mag))
+            agent_centre = (int(agent.position["t"][0]*self.mag),
+                            int(agent.position["t"][1]*self.mag))
             agent_radius = int(self.mag*0.01)
 
             cv2.circle(self.image, agent_centre, agent_radius, (0,0,255), -1)
-        
+
         cv2.imshow('Simulation', self.image)
-        cv2.waitKey(0)
+        cv2.waitKey(100)
 
 
 
