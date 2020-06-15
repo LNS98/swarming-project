@@ -20,12 +20,19 @@ import matplotlib.cm as cm
 
 class Environment:
     # some constants
+    MODEL = "SVM" # choose between "SVM" (standard Viscek Model) or "kNN"
+
     M = 1   # number of objects
-    V_MAG = 0.05      # total magnitude of each particle velocity
+    V_MAG = 0.01      # total magnitude of each particle velocity
     DELTA_T = 1     # time increment
 
+    # constants for stregnth of each force
+    ALPHA  = 1 # allignment force
+    BETA = 0 # repulsive stregnth
+    GAMMA = 0 # rotor stregnth
+
     # # distance metrics in the code
-    R = 1.0   # radius of allignment
+    R = 0.1   # radius of allignment
     R_C = 0.05 # radius within repulsion
     R_E = 0.5 # radius of equilibrium between the particles
     R_A = 0.8 # radius when attraction starts
@@ -68,7 +75,7 @@ class Environment:
         while agent_no < self.N:
             random_coords = (random.uniform(0, self.L), random.uniform(0, self.L))
             if self._coord_outside_rotor(random_coords):
-                self.agents.append(Agent(random_coords))
+                self.agents.append(Agent(random_coords, self.V_MAG, self.DELTA_T))
                 agent_no += 1
 
     def _coord_outside_rotor(self, coordinates):
@@ -96,13 +103,14 @@ class Environment:
         for agent in self.agents:
             agent.position["t"] = agent.position["t+1"]
 
+
     def _force(self, current_agent):
-        force = np.array([0., 0.])
+        force_rep = np.array([0., 0.])
         for agent in self.agents:
             if current_agent.position != agent.position:
-                force += part_repulsive_force(current_agent.position["t"], agent.position["t"])
+                force_rep += part_repulsive_force(current_agent.position["t"], agent.position["t"], self.R_O)
 
-        force += allignment_force(current_agent, self.agents, self.R)
+        force = self.ALPHA*allignment_force(current_agent, self.agents, self.R, self.MODEL) + self.BETA*force_rep
 
         return force
 
@@ -111,23 +119,23 @@ class Environment:
         self.image.fill(0)
 
         # rotor as a polygon
-        rotor_pts = np.array(list(map(lambda x: x*self.mag,  self.rotor.verticies)))
-        rotor_pts = rotor_pts.reshape((-1,1,2))
-        cv2.fillPoly(self.image, np.int32([rotor_pts]), (0,255,255))
+        # rotor_pts = np.array(list(map(lambda x: x*self.mag,  self.rotor.verticies)))
+        # rotor_pts = rotor_pts.reshape((-1,1,2))
+        # cv2.fillPoly(self.image, np.int32([rotor_pts]), (0,255,255))
 
         # display agents as circles
         for agent in self.agents:
             agent_centre = (int(agent.position["t"][0]*self.mag),
                             int(agent.position["t"][1]*self.mag))
-            agent_radius = int(self.mag*0.01)
+            agent_radius = int(self.mag*0.005)
 
             cv2.circle(self.image, agent_centre, agent_radius, (0,0,255), -1)
 
         cv2.imshow('Simulation', self.image)
-        cv2.waitKey(100)
+        cv2.waitKey(1)
 
 
-
+ # ---------------------------- OLD ---------------------------------------
 def pop_box(polygons):
     """
     Function which creates one particle with a ramdom position and velocity
@@ -242,11 +250,4 @@ def show_path_2D(start, end, coordinates, polygons, clear = True):
             plt.clf()
 
     return None
-
-
-if __name__ == "__main__":
-    L = 1
-    N = 3
-    env = Environment(L, N)
-
-    env.display()
+ # ---------------------------- OLD ---------------------------------------

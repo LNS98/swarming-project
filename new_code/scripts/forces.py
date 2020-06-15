@@ -9,21 +9,58 @@ import numpy as np
 from shapely.geometry import LineString, Point, LinearRing, Polygon
 from utils import rescale, per_boun_distance, distance_fun, angle_to_xy
 from forces_utils import particles_in_radius, k_particles
-from constants import bound_cond, v_mag, delta_t, r_c, r_e, r_a, r_o, fric_force, noise, model
+# from constants import bound_cond, v_mag, delta_t, r_c, r_e, r_a, r_o, fric_force, noise, model
 
-# # constants
-# bound_cond = True   # set the boundry conditions on or off
-# v_mag = 0.05      # total magnitude of each particle velocity
-# delta_t = 1     # time increment
-# r_c = 0.05 # radius within repulsion
-# r_e = 0.5 # radius of equilibrium between the particles
-# r_a = 0.8 # radius when attraction starts
-# r_o = v_mag # radius of attraction between the particels and the objects
-# fric_force = 0.2  # frictional forrce of the object when rotating
-# noise = 2*math.pi  # noise added to the velocity
-#
-# # picking a model
-# model = "kNN" # select SVM for standard Vicsek Model and kNN for nearest neighbours
+
+
+def allignment_force(current_agent, agents, R, model):
+    """
+    Add a force which changes the velocity in the direction of the desired one.
+    """
+    position_particle = current_agent.position["t"]
+    velocity_particle = current_agent.velocity
+
+
+    # If using the Vicsek Model get velocity of particles in radius
+    if model == "SVM":
+        agents_in_r = particles_in_radius(position_particle, agents, R)
+    # If using kNN neighbours get the velocity of k nearest neighbours
+    if model == "kNN":
+        vel_in_r = np.array(k_particles(position_particle, position_particles, velocities_particles)[0])
+
+    vel_in_r = np.array([agent.velocity for agent in agents_in_r])
+    vel_wanted = np.mean(vel_in_r, axis = 0)
+
+    # get the force by subtracting the current vel from the desired one
+    force = vel_wanted - velocity_particle
+
+    return force
+
+
+def part_repulsive_force(i, j, r_o):
+    """
+    calculates the force used in the repulsive_force function. As per chate 2008
+    """
+
+    # calculate the distance between the points
+    distance_x, distance_y = per_boun_distance(i, j)
+    # calcualte the magnitude of the distance between the points
+    distance = (distance_x ** 2 + distance_y ** 2) ** (1/2)
+
+    try:
+        # magnitude of force
+        magnitude = -1 /(1 + math.exp(distance/ r_o))
+
+    except OverflowError as err:
+        magnitude = 0
+
+    # get the x direction of the force
+    F_x = (magnitude * distance_x) / distance
+    # get the y direction of the force
+    F_y = (magnitude * distance_y) / distance
+
+    return np.array([F_x, F_y])
+
 
 
 def torque_force(polygon, position_obj, ang_vel_object, velocity_particle, position_particle):
@@ -99,34 +136,6 @@ def obj_repulsive_force(particle_position, polygon):
 
     return np.array([F_x, F_y])
 
-def part_repulsive_force(i, j):
-    """
-    calculates the force used in the repulsive_force function. As per chate 2008
-    """
-    if bound_cond == True:
-        # calculate the distance between the points
-        distance_x, distance_y = per_boun_distance(i, j)
-        # calcualte the magnitude of the distance between the points
-        distance = (distance_x ** 2 + distance_y ** 2) ** (1/2)
-
-    else:
-        distance_x, distance_y = j[0] - i[0], j[1] - i[1]
-        distance = distance_fun(i, j)
-
-    try:
-        # magnitude of force
-        magnitude = -1 /(1 + math.exp(distance/ r_o))
-
-    except OverflowError as err:
-        magnitude = 0
-
-    # get the x direction of the force
-    F_x = (magnitude * distance_x) / distance
-
-    # get the y direction of the force
-    F_y = (magnitude * distance_y) / distance
-
-    return np.array([F_x, F_y])
 
 def inverse_force(i, j):
     """
@@ -153,30 +162,6 @@ def inverse_force(i, j):
 
     return np.array([F_x, F_y])
 
-def allignment_force(current_agent, agents, R):
-    """
-    Add a force which changes the velocity in the direction of the desired one.
-    """
-    position_particle = current_agent.position["t"]
-    velocity_particle = current_agent.velocity
-
-
-    # If using the Vicsek Model get velocity of particles in radius
-    if model == "SVM":
-        agents_in_r = particles_in_radius(position_particle, agents, R)
-
-    # If using kNN neighbours get the velocity of k nearest neighbours
-    if model == "kNN":
-        vel_in_r = np.array(k_particles(position_particle, position_particles, velocities_particles)[0])
-
-    # get the average value of that velocity
-    vel_in_r = np.array([agent.velocity for agent in agents_in_r])
-    vel_wanted = np.mean(vel_in_r, axis = 0)
-
-    # get the force by subtracting the current vel from the desired one
-    force = vel_wanted - velocity_particle
-
-    return force
 
 def chate_rep_att_force(i, j):
     """

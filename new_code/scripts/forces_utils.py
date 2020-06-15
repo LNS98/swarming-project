@@ -27,17 +27,13 @@ def particles_in_radius(position_particle, agents, R):
     agents_within_R = []
 
     # check over all particles in positions
-    for index, agent in enumerate(agents):
-        # variable used to aid if its in radius
-        in_size = True
-
+    for agent in agents:
         # check if it is smaller than the radius in all
         distance = per_boun_distance(position_particle, agent.position["t"])
-
         if np.linalg.norm(distance) < R:
             agents_within_R.append(agent)
 
-        return agents_within_R
+    return agents_within_R
 
 
 def k_particles(chosen_particle, positions, velocities):
